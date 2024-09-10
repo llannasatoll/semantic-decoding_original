@@ -1,1 +1,10 @@
 __pycache__
+data*
+hub
+metrics
+models
+modules
+poetry.lock
+pyproject.toml
+results
+scores

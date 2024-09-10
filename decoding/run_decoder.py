@@ -76,7 +76,7 @@ if __name__ == "__main__":
             likelihoods = em.prs(stim, trs)
             local_extensions = [Hypothesis(parent = hyp, extension = x) for x in zip(nuc, logprobs, extend_embs)]
             decoder.add_extensions(local_extensions, likelihoods, nextensions)
-        decoder.extend(verbose = False)
+        decoder.extend(verbose = True)
         
     if args.experiment in ["perceived_movie", "perceived_multispeaker"]: decoder.word_times += 10
     save_location = os.path.join(config.RESULT_DIR, args.subject, args.experiment)

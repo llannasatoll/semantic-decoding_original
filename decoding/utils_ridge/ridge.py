@@ -281,7 +281,7 @@ def bootstrap_ridge(Rstim, Rresp, alphas, nboots, chunklen, nchunks, dtype=np.si
         ## Run ridge regression using this test set
         Rcmat = ridge_corr(RRstim, PRstim, RRresp, PRresp, alphas,
                            dtype=dtype, corrmin=corrmin, singcutoff=singcutoff,
-                           normalpha=normalpha, use_corr=use_corr)
+                           normalpha=normalpha, use_corr=use_corr, logger=logger)
         
         Rcmats.append(Rcmat)
     

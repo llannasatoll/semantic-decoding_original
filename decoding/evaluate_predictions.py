@@ -44,6 +44,7 @@ if __name__ == "__main__":
         
     window_scores, window_zscores = {}, {}
     story_scores, story_zscores = {}, {}
+    window_null_scores, story_null_scores = {}, {}
     for reference in args.references:
 
         # load reference transcript
@@ -57,24 +58,29 @@ if __name__ == "__main__":
         null_window_list = [segment_data(null_words, pred_times, window_cutoffs) for null_words in null_word_list]
         
         for mname, metric in metrics.items():
+            if mname != "WER":
+                window_null_scores[(reference, mname)] = np.array([metric.score(ref = ref_windows, pred = null_windows)
+                                                                   for null_windows in null_window_list])
+                story_null_scores[(reference, mname)] = np.array([metric.score(ref = [list(ref_words)], pred = [list(null)])
+                                                                  for null in null_word_list])
 
-            # get null score for each window and the entire story
-            window_null_scores = np.array([metric.score(ref = ref_windows, pred = null_windows) 
-                                           for null_windows in null_window_list])
-            story_null_scores = window_null_scores.mean(1)
+                window_scores[(reference, mname)] = metric.score(ref = ref_windows, pred = pred_windows)
+                story_scores[(reference, mname)] = metric.score(ref = [list(ref_words)], pred = [list(pred_words)])
+            else:
+                # get null score for each window and the entire story
+                window_null_scores[(reference, mname)] = np.array([metric.score(ref = [" ".join(ref) for ref in ref_windows], pred = [" ".join(null) for null in null_windows]) 
+                                                                for null_windows in null_window_list])
+                story_null_scores[(reference, mname)] = np.array(metric.score(ref = [" ".join(ref_words)]*len(null_word_list), pred = [" ".join(null) for null in null_word_list]))
 
-            # get raw score and normalized score for each window
-            window_scores[(reference, mname)] = metric.score(ref = ref_windows, pred = pred_windows)
-            window_zscores[(reference, mname)] = (window_scores[(reference, mname)] 
-                                                  - window_null_scores.mean(0)) / window_null_scores.std(0)
-
-            # get raw score and normalized score for the entire story
-            story_scores[(reference, mname)] = metric.score(ref = ref_windows, pred = pred_windows)
-            story_zscores[(reference, mname)] = (story_scores[(reference, mname)].mean()
-                                                 - story_null_scores.mean()) / story_null_scores.std()
+                # get raw score and normalized score for each window
+                window_scores[(reference, mname)] = metric.score(ref = [" ".join(ref) for ref in ref_windows], pred = [" ".join(pred) for pred in pred_windows])
+                # get raw score and normalized score for the entire story
+                story_scores[(reference, mname)] = metric.score(ref = [" ".join(ref_words)], pred = [" ".join(pred_words)])
     
     save_location = os.path.join(config.REPO_DIR, "scores", args.subject, args.experiment)
     os.makedirs(save_location, exist_ok = True)
     np.savez(os.path.join(save_location, args.task), 
              window_scores = window_scores, window_zscores = window_zscores, 
-             story_scores = story_scores, story_zscores = story_zscores)
+             story_scores = story_scores, story_zscores = story_zscores,
+             window_null_scores = window_null_scores, story_null_scores = story_null_scores
+    )

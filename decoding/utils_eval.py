@@ -90,7 +90,7 @@ BLEU (https://aclanthology.org/P02-1040.pdf)
 """
 class BLEU(object):
     def __init__(self, n = 4):
-        self.metric = load_metric("bleu", keep_in_memory=True)
+        self.metric = load_metric("bleu", keep_in_memory=True, trust_remote_code=True)
         self.n = n
         
     def score(self, ref, pred):

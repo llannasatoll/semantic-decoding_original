@@ -1,5 +1,9 @@
 import torch
 import numpy as np
+import json
+import os
+
+import config
 from transformers import AutoModelForCausalLM
 from torch.nn.functional import softmax
 
@@ -7,12 +11,16 @@ from torch.nn.functional import softmax
 class GPT:
     """wrapper for https://huggingface.co/openai-gpt"""
 
-    def __init__(self, path, vocab, device="cpu"):
+    def __init__(self, llm, device="cpu", gpt="perceived"):
         self.device = device
-        self.model = AutoModelForCausalLM.from_pretrained(path).eval().to(self.device)
-        self.vocab = vocab
-        self.word2id = {w: i for i, w in enumerate(self.vocab)}
-        self.UNK_ID = self.word2id["<unk>"]
+        if llm == "original":
+            self.model = AutoModelForCausalLM.from_pretrained(config.MODELS[llm](gpt)).eval().to(self.device)
+            with open(os.path.join(config.DATA_LM_DIR, gpt, "vocab.json"), "r") as f:
+                vocab = json.load(f)
+            self.word2id = {w: i for i, w in enumerate(vocab)}
+            self.UNK_ID = self.word2id["<unk>"]
+        else:
+            raise()
 
     def encode(self, words):
         """map from words to ids"""

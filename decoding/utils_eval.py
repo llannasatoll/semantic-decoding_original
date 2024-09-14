@@ -131,7 +131,7 @@ class WER(object):
             if self.use_score:
                 scores.append(1 - error)
             else:
-                use_score.append(error)
+                scores.append(error)
         return np.array(scores)
 
 

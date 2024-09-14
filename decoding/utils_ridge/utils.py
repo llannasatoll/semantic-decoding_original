@@ -109,7 +109,6 @@ def mult_diag(d, mtx, left=True):
         return d * mtx
 
 
-
 def counter(iterable, countevery=100, total=None, logger=logging.getLogger("counter")):
     """Logs a status and timing update to [logger] every [countevery] draws from [iterable].
     If [total] is given, log messages will include the estimated time remaining.

@@ -21,7 +21,10 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = 9
+GPT_LAYER = {
+    "original": 9,
+    "llama3" : 11,
+}
 GPT_WORDS = 5
 
 # decoder parameters
@@ -43,3 +46,9 @@ WINDOW = 20
 GPT_DEVICE = "cuda"
 EM_DEVICE = "cuda"
 SM_DEVICE = "cuda"
+
+gpt = "perceived"
+MODELS = {
+    "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
+    "llama3" : "meta-llama/Meta-Llama-3-8B",
+}

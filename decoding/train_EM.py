@@ -23,6 +23,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
+    parser.add_argument("--llm", type=str, required=True)
     parser.add_argument("--gpt", type=str, default="perceived")
     parser.add_argument(
         "--sessions",
@@ -39,16 +40,9 @@ if __name__ == "__main__":
     for sess in args.sessions:
         stories.extend(sess_to_story[str(sess)])
 
-    # load gpt
-    with open(os.path.join(config.DATA_LM_DIR, args.gpt, "vocab.json"), "r") as f:
-        gpt_vocab = json.load(f)
-    gpt = GPT(
-        path=os.path.join(config.DATA_LM_DIR, args.gpt, "model"),
-        vocab=gpt_vocab,
-        device=config.GPT_DEVICE,
-    )
+    gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt)
     features = LMFeatures(
-        model=gpt, layer=config.GPT_LAYER, context_words=config.GPT_WORDS
+        model=gpt, layer=config.GPT_LAYER[args.llm], context_words=config.GPT_WORDS
     )
 
     # estimate encoding model

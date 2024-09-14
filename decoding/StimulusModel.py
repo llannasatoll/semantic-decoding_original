@@ -102,11 +102,19 @@ class LMFeatures:
 
     def make_stim(self, words):
         """outputs matrix of features corresponding to the stimulus words"""
-        context_array = self.model.get_story_array(words, self.context_words)
+        context_array, wordind2tokind = self.model.get_story_array(
+            words, self.context_words
+        )
         embs = self.model.get_hidden(context_array, layer=self.layer)
-        return np.vstack(
-            [
-                embs[0, : self.context_words],
-                embs[: context_array.shape[0] - self.context_words, self.context_words],
-            ]
+        return (
+            np.vstack(
+                [
+                    embs[0, : self.context_words],
+                    embs[
+                        : context_array.shape[0] - self.context_words,
+                        self.context_words,
+                    ],
+                ]
+            ),
+            wordind2tokind,
         )

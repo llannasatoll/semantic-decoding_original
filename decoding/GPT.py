@@ -15,27 +15,38 @@ from torch.nn.functional import softmax
 class GPT:
     """wrapper for https://huggingface.co/openai-gpt"""
 
-    def __init__(self, llm, device="cpu", gpt="perceived"):
+    def __init__(self, llm, device="cpu", gpt="perceived", not_load_model=False):
         self.device = device
         self.llm = llm
         if llm == "original":
             self.model = (
-                AutoModelForCausalLM.from_pretrained(config.MODELS[llm](gpt))
-                .eval()
-                .to(self.device)
+                (
+                    AutoModelForCausalLM.from_pretrained(config.MODELS[llm](gpt))
+                    .eval()
+                    .to(self.device)
+                )
+                if not not_load_model
+                else None
             )
             with open(os.path.join(config.DATA_LM_DIR, gpt, "vocab.json"), "r") as f:
-                vocab = json.load(f)
-            self.word2id = {w: i for i, w in enumerate(vocab)}
+                self.vocab = json.load(f)
+            self.word2id = {w: i for i, w in enumerate(self.vocab)}
             self.UNK_ID = self.word2id["<unk>"]
         elif llm == "llama3":
             self.model = (
-                LlamaForCausalLM.from_pretrained(config.MODELS[llm])
-                .eval()
-                .to(self.device)
+                (
+                    LlamaForCausalLM.from_pretrained(config.MODELS[llm])
+                    .eval()
+                    .to(self.device)
+                )
+                if not not_load_model
+                else None
             )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
+            self.vocab = [
+                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
+            ]
             self.UNK_ID = (
                 self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
             )

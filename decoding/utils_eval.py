@@ -159,13 +159,14 @@ METEOR (https://aclanthology.org/W05-0909.pdf)
 
 
 class METEOR(object):
-    def __init__(self):
+    def __init__(self, mark):
         self.metric = load_metric("meteor", keep_in_memory=True)
+        self.mark = mark
 
     def score(self, ref, pred):
         results = []
-        ref_strings = [" ".join(x) for x in ref]
-        pred_strings = [" ".join(x) for x in pred]
+        ref_strings = [self.mark.join(x) for x in ref]
+        pred_strings = [self.mark.join(x) for x in pred]
         for r, p in zip(ref_strings, pred_strings):
             self.metric.add_batch(predictions=[p], references=[r])
             results.append(self.metric.compute()["meteor"])
@@ -178,7 +179,8 @@ BERTScore (https://arxiv.org/abs/1904.09675)
 
 
 class BERTSCORE(object):
-    def __init__(self, idf_sents=None, rescale=True, score="f"):
+    def __init__(self, mark, idf_sents=None, rescale=True, score="f"):
+        self.mark = mark
         self.metric = BERTScorer(
             lang="en",
             rescale_with_baseline=rescale,
@@ -193,8 +195,8 @@ class BERTSCORE(object):
             self.score_id = 2
 
     def score(self, ref, pred):
-        ref_strings = [" ".join(x) for x in ref]
-        pred_strings = [" ".join(x) for x in pred]
+        ref_strings = [self.mark.join(x) for x in ref]
+        pred_strings = [self.mark.join(x) for x in pred]
         return self.metric.score(cands=pred_strings, refs=ref_strings)[
             self.score_id
         ].numpy()

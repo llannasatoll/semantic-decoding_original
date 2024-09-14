@@ -4,6 +4,8 @@ import json
 import argparse
 
 import config
+from GPT import GPT
+from StimulusModel import LMFeatures
 from utils_stim import get_story_wordseqs
 from utils_resp import get_resp
 from utils_ridge.DataSequence import DataSequence
@@ -15,6 +17,7 @@ np.random.seed(42)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
+    parser.add_argument("--llm", type=str, required=True)
     parser.add_argument(
         "--sessions",
         nargs="+",
@@ -40,12 +43,19 @@ if __name__ == "__main__":
     save_location = os.path.join(config.MODEL_DIR, args.subject)
     os.makedirs(save_location, exist_ok=True)
 
+    gpt = GPT(path=config.MODELS[args.llm], not_load_model=True)
+    features = LMFeatures(model=gpt, layer=-1, context_words=-1)
+
     wordseqs = get_story_wordseqs(stories)
     rates = {}
     for story in stories:
         ds = wordseqs[story]
+        _, wordind2tokind = features.make_stim(ds.data)
         words = DataSequence(
-            np.ones(len(ds.data_times)), ds.split_inds, ds.data_times, ds.tr_times
+            np.ones(len(wordind2tokind)),
+            ds.split_inds,
+            ds.data_times[wordind2tokind],
+            ds.tr_times,
         )
         rates[story] = words.chunksums("lanczos", window=3)
     nz_rate = np.concatenate(
@@ -69,8 +79,9 @@ if __name__ == "__main__":
             nchunks=nchunks,
         )
         np.savez(
-            os.path.join(save_location, "word_rate_model_%s" % roi),
+            os.path.join(save_location, args.llm, "word_rate_model_%s" % roi),
             weights=weights,
             mean_rate=mean_rate,
             voxels=vox[roi],
+            llm=args.llm,
         )

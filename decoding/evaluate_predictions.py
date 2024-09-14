@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--subject", type=str, required=True)
     parser.add_argument("--experiment", type=str, required=True)
     parser.add_argument("--task", type=str, required=True)
+    parser.add_argument("--llm", type=str, required=True)
     parser.add_argument(
         "--metrics", nargs="+", type=str, default=["WER", "BLEU", "METEOR", "BERT"]
     )
@@ -40,9 +41,10 @@ if __name__ == "__main__":
     if "BLEU" in args.metrics:
         metrics["BLEU"] = BLEU(n=1)
     if "METEOR" in args.metrics:
-        metrics["METEOR"] = METEOR()
+        metrics["METEOR"] = METEOR(mark=config.MARK[args.llm])
     if "BERT" in args.metrics:
         metrics["BERT"] = BERTSCORE(
+            mark=config.MARK[args.llm],
             idf_sents=np.load(os.path.join(config.DATA_TEST_DIR, "idf_segments.npy")),
             rescale=False,
             score="recall",
@@ -50,7 +52,10 @@ if __name__ == "__main__":
 
     # load prediction transcript
     pred_path = os.path.join(
-        config.RESULT_DIR, args.subject, args.experiment, args.task + ".npz"
+        config.RESULT_DIR,
+        args.subject,
+        args.experiment,
+        args.task + "_" + args.llm + ".npz",
     )
     pred_data = np.load(pred_path)
     pred_words, pred_times = pred_data["words"], pred_data["times"]
@@ -85,15 +90,35 @@ if __name__ == "__main__":
                 window_null_scores[(reference, mname)] = np.array(
                     [
                         metric.score(
-                            ref=[" ".join(ref) for ref in ref_windows],
-                            pred=[" ".join(null) for null in null_windows],
+                            ref=[
+                                config.MARK[args.llm].join(ref) for ref in ref_windows
+                            ],
+                            pred=[
+                                config.MARK[args.llm].join(null)
+                                for null in null_windows
+                            ],
                         )
                         for null_windows in null_window_list
                     ]
                 )
                 window_scores[(reference, mname)] = metric.score(
-                    ref=[" ".join(ref) for ref in ref_windows],
-                    pred=[" ".join(pred) for pred in pred_windows],
+                    ref=[config.MARK[args.llm].join(ref) for ref in ref_windows],
+                    pred=[config.MARK[args.llm].join(pred) for pred in pred_windows],
+                )
+            elif mname == "BLEU" and config.MARK[args.llm] == "":
+                ref_windows = ["".join(ref).split(" ") for ref in ref_windows]
+                window_null_scores[(reference, mname)] = np.array(
+                    [
+                        metric.score(
+                            ref=ref_windows,
+                            pred=["".join(null).split(" ") for null in null_windows],
+                        )
+                        for null_windows in null_window_list
+                    ]
+                )
+                window_scores[(reference, mname)] = metric.score(
+                    ref=ref_windows,
+                    pred=["".join(pred).split(" ") for pred in pred_windows],
                 )
             else:
                 window_null_scores[(reference, mname)] = np.array(
@@ -114,7 +139,7 @@ if __name__ == "__main__":
     )
     os.makedirs(save_location, exist_ok=True)
     np.savez(
-        os.path.join(save_location, args.task),
+        os.path.join(save_location, args.task + "_" + args.llm),
         window_scores=window_scores,
         window_zscores=window_zscores,
         story_scores=story_scores,

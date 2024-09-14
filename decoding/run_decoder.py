@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--subject", type=str, required=True)
     parser.add_argument("--experiment", type=str, required=True)
     parser.add_argument("--task", type=str, required=True)
+    parser.add_argument("--llm", type=str, required=True)
     args = parser.parse_args()
 
     # determine GPT checkpoint based on experiment
@@ -45,32 +46,34 @@ if __name__ == "__main__":
     resp = np.nan_to_num(hf["data"][:])
     hf.close()
 
+    # load models
+    load_location = os.path.join(config.MODEL_DIR, args.subject)
+    word_rate_model = np.load(
+        os.path.join(
+            load_location, args.llm, "word_rate_model_%s.npz" % word_rate_voxels
+        ),
+        allow_pickle=True,
+    )
+    encoding_model = np.load(
+        os.path.join(load_location, args.llm, "encoding_model_%s.npz" % gpt_checkpoint)
+    )
     # load gpt
     with open(os.path.join(config.DATA_LM_DIR, gpt_checkpoint, "vocab.json"), "r") as f:
         gpt_vocab = json.load(f)
     with open(os.path.join(config.DATA_LM_DIR, "decoder_vocab.json"), "r") as f:
         decoder_vocab = json.load(f)
     gpt = GPT(
-        path=os.path.join(config.DATA_LM_DIR, gpt_checkpoint, "model"),
-        vocab=gpt_vocab,
+        llm=encoding_model["llm"],
         device=config.GPT_DEVICE,
+        gpt=gpt_checkpoint,
     )
     features = LMFeatures(
-        model=gpt, layer=config.GPT_LAYER, context_words=config.GPT_WORDS
+        model=gpt, layer=config.GPT_LAYER[args.llm], context_words=config.GPT_WORDS
     )
     lm = LanguageModel(
-        gpt, decoder_vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
+        gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
     )
 
-    # load models
-    load_location = os.path.join(config.MODEL_DIR, args.subject)
-    word_rate_model = np.load(
-        os.path.join(load_location, "word_rate_model_%s.npz" % word_rate_voxels),
-        allow_pickle=True,
-    )
-    encoding_model = np.load(
-        os.path.join(load_location, "encoding_model_%s.npz" % gpt_checkpoint)
-    )
     weights = encoding_model["weights"]
     noise_model = encoding_model["noise_model"]
     tr_stats = encoding_model["tr_stats"]
@@ -120,4 +123,4 @@ if __name__ == "__main__":
         decoder.word_times += 10
     save_location = os.path.join(config.RESULT_DIR, args.subject, args.experiment)
     os.makedirs(save_location, exist_ok=True)
-    decoder.save(os.path.join(save_location, args.task))
+    decoder.save(os.path.join(save_location, args.task + "_" + args.llm))

@@ -105,6 +105,8 @@ class LMFeatures:
         context_array, wordind2tokind = self.model.get_story_array(
             words, self.context_words
         )
+        if self.context_words < 0:
+            return None, wordind2tokind
         embs = self.model.get_hidden(context_array, layer=self.layer)
         return (
             np.vstack(

@@ -9,7 +9,9 @@ DATA_LM_DIR = os.path.join(REPO_DIR, "data_lm")
 DATA_TRAIN_DIR = os.path.join(REPO_DIR, "data_train")
 DATA_TEST_DIR = os.path.join(REPO_DIR, "data_test")
 MODEL_DIR = os.path.join(REPO_DIR, "models")
-RESULT_DIR = os.path.join(REPO_DIR, "results")
+RESULT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
+).replace("Storage2", "home")
 SCORE_DIR = os.path.join(REPO_DIR, "scores")
 
 # GPT encoding model parameters
@@ -23,7 +25,7 @@ VOXELS = 10000
 CHUNKLEN = 40
 GPT_LAYER = {
     "original": 9,
-    "llama3" : 11,
+    "llama3": 11,
 }
 GPT_WORDS = 5
 
@@ -50,5 +52,10 @@ SM_DEVICE = "cuda"
 gpt = "perceived"
 MODELS = {
     "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
-    "llama3" : "meta-llama/Meta-Llama-3-8B",
+    "llama3": "meta-llama/Meta-Llama-3-8B",
+}
+
+MARK = {
+    "original": " ",
+    "llama3": "",
 }

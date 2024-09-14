@@ -88,7 +88,7 @@ if __name__ == "__main__":
     save_location = os.path.join(config.MODEL_DIR, args.subject)
     os.makedirs(save_location, exist_ok=True)
     np.savez(
-        os.path.join(save_location, "encoding_model_%s" % args.gpt),
+        os.path.join(save_location, args.llm, "encoding_model_%s" % args.gpt),
         weights=weights,
         noise_model=noise_model,
         alphas=alphas,
@@ -96,4 +96,5 @@ if __name__ == "__main__":
         stories=stories,
         tr_stats=np.array(tr_stats),
         word_stats=np.array(word_stats),
+        llm=args.llm,
     )

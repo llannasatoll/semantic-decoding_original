@@ -4,6 +4,7 @@ import numpy as np
 # paths
 
 REPO_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO_DIR = os.path.join("/Storage2", "anna", "semantic-decoding")
 DATA_LM_DIR = os.path.join(REPO_DIR, "data_lm")
 DATA_TRAIN_DIR = os.path.join(REPO_DIR, "data_train")
 DATA_TEST_DIR = os.path.join(REPO_DIR, "data_test")

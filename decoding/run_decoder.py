@@ -15,9 +15,9 @@ from utils_stim import predict_word_rate, predict_word_times
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
-    parser.add_argument("--experiment", type=str, required=True)
-    parser.add_argument("--task", type=str, required=True)
     parser.add_argument("--llm", type=str, required=True)
+    parser.add_argument("--task", type=str, default="wheretheressmoke")
+    parser.add_argument("--experiment", type=str, default="perceived_speech")
     args = parser.parse_args()
 
     # determine GPT checkpoint based on experiment

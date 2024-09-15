@@ -43,7 +43,7 @@ if __name__ == "__main__":
     save_location = os.path.join(config.MODEL_DIR, args.subject)
     os.makedirs(save_location, exist_ok=True)
 
-    gpt = GPT(path=config.MODELS[args.llm], not_load_model=True)
+    gpt = GPT(llm=args.llm, not_load_model=True)
     features = LMFeatures(model=gpt, layer=-1, context_words=-1)
 
     wordseqs = get_story_wordseqs(stories)
@@ -78,6 +78,7 @@ if __name__ == "__main__":
             chunklen=config.CHUNKLEN,
             nchunks=nchunks,
         )
+        os.makedirs(os.path.join(save_location, args.llm), exist_ok=True)
         np.savez(
             os.path.join(save_location, args.llm, "word_rate_model_%s" % roi),
             weights=weights,

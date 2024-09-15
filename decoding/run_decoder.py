@@ -58,12 +58,8 @@ if __name__ == "__main__":
         os.path.join(load_location, args.llm, "encoding_model_%s.npz" % gpt_checkpoint)
     )
     # load gpt
-    with open(os.path.join(config.DATA_LM_DIR, gpt_checkpoint, "vocab.json"), "r") as f:
-        gpt_vocab = json.load(f)
-    with open(os.path.join(config.DATA_LM_DIR, "decoder_vocab.json"), "r") as f:
-        decoder_vocab = json.load(f)
     gpt = GPT(
-        llm=encoding_model["llm"],
+        llm=encoding_model["llm"].item(),
         device=config.GPT_DEVICE,
         gpt=gpt_checkpoint,
     )
@@ -99,7 +95,13 @@ if __name__ == "__main__":
 
     # decode responses
     decoder = Decoder(word_times, config.WIDTH)
-    sm = StimulusModel(lanczos_mat, tr_stats, word_stats[0], device=config.SM_DEVICE)
+    sm = StimulusModel(
+        lanczos_mat,
+        tr_stats,
+        word_stats[0],
+        device=config.SM_DEVICE,
+        dim_pca=1000 if args.llm == "llama3" else None,
+    )
     for sample_index in range(len(word_times)):
         trs = affected_trs(decoder.first_difference(), sample_index, lanczos_mat)
         ncontext = decoder.time_window(sample_index, config.LM_TIME, floor=5)
@@ -123,4 +125,4 @@ if __name__ == "__main__":
         decoder.word_times += 10
     save_location = os.path.join(config.RESULT_DIR, args.subject, args.experiment)
     os.makedirs(save_location, exist_ok=True)
-    decoder.save(os.path.join(save_location, args.task + "_" + args.llm))
+    decoder.save(os.path.join(save_location, args.task + "_" + args.llm), gpt)

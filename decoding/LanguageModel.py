@@ -223,7 +223,8 @@ class LanguageModel:
 
     def __init__(self, model, vocab, nuc_mass=1.0, nuc_ratio=0.0):
         self.model = model
-        self.ids = {i for word, i in self.model.word2id.items() if word in set(vocab)}
+        vocab = set(vocab)
+        self.ids = {i for word, i in self.model.word2id.items() if word in vocab}
         self.nuc_mass, self.nuc_ratio = nuc_mass, nuc_ratio
 
     def ps(self, contexts):

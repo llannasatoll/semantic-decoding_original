@@ -59,11 +59,10 @@ class Decoder(object):
         if verbose:
             print(self.beam[0].words)
 
-    def save(self, path):
+    def save(self, path, gpt):
         """save decoder results"""
-        np.savez(
-            path, words=np.array(self.beam[0].words), times=np.array(self.word_times)
-        )
+        words = gpt.decode_misencoded_text(self.beam[0].words)
+        np.savez(path, words=np.array(words), times=np.array(self.word_times))
 
 
 class Hypothesis(object):

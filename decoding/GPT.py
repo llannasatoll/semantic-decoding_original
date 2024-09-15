@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import json
 import os
+import socket
 
 import config
 from transformers import (
@@ -10,6 +11,8 @@ from transformers import (
     LlamaForCausalLM,
 )
 from torch.nn.functional import softmax
+
+HOSTNAME = socket.gethostname()
 
 
 class GPT:
@@ -33,15 +36,24 @@ class GPT:
             self.word2id = {w: i for i, w in enumerate(self.vocab)}
             self.UNK_ID = self.word2id["<unk>"]
         elif llm == "llama3":
-            self.model = (
-                (
-                    LlamaForCausalLM.from_pretrained(config.MODELS[llm])
-                    .eval()
-                    .to(self.device)
+            if HOSTNAME == "riemann":
+                self.model = (
+                    (
+                        LlamaForCausalLM.from_pretrained(config.MODELS[llm])
+                        .eval()
+                        .to(self.device)
+                    )
+                    if not not_load_model
+                    else None
                 )
-                if not not_load_model
-                else None
-            )
+            else:
+                self.model = (
+                    LlamaForCausalLM.from_pretrained(
+                        config.MODELS[llm], device_map="balanced"
+                    ).eval()
+                    if not not_load_model
+                    else None
+                )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -180,3 +192,11 @@ class GPT:
             )
         probs = softmax(outputs.logits, dim=2).detach().cpu().numpy()
         return probs
+
+    def decode_misencoded_text(self, words):
+        if self.llm == "llama3":
+            return [
+                w.replace("Ġ", " ").replace("âĢĻ", "'").replace("Ċ", "\n")
+                for w in words
+            ]
+        return words

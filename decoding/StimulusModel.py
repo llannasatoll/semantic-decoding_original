@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import joblib
 
 torch.set_default_tensor_type(torch.FloatTensor)
 
@@ -32,12 +33,13 @@ def affected_trs(start_index, end_index, lanczos_mat, delay=True):
 class StimulusModel:
     """class for constructing stimulus features"""
 
-    def __init__(self, lanczos_mat, tr_stats, word_mean, device="cpu"):
+    def __init__(self, lanczos_mat, tr_stats, word_mean, device="cpu", dim_pca=None):
         self.device = device
         self.lanczos_mat = torch.from_numpy(lanczos_mat).float().to(self.device)
         self.tr_mean = torch.from_numpy(tr_stats[0]).float().to(device)
         self.tr_std_inv = torch.from_numpy(np.diag(1 / tr_stats[1])).float().to(device)
         self.blank = torch.from_numpy(word_mean).float().to(self.device)
+        self.dim_pca = dim_pca
 
     def _downsample(self, variants):
         """downsamples word embeddings to TR embeddings for each hypothesis"""
@@ -81,8 +83,19 @@ class StimulusModel:
                 torch.tensor(np.array(var_embs)).float().to(self.device)
             )
             tr_variants = self._normalize(self._downsample(variants))
-            del_tr_variants = self._delay(tr_variants, n_variants, n_feats)
-        return del_tr_variants[:, affected_trs, :].to("cpu")
+            pca = joblib.load("/Storage2/anna/semantic-decoding_original/pca_model.pkl")
+            tr_variants_pca = pca.transform(
+                tr_variants.to("cpu").reshape(-1, tr_variants.shape[-1])
+            )
+            tr_variants = tr_variants_pca.reshape(
+                tr_variants.shape[0], tr_variants.shape[1], -1
+            )
+            del_tr_variants = self._delay(
+                torch.tensor(tr_variants).float().to(self.device),
+                n_variants,
+                n_feats if self.dim_pca is None else self.dim_pca,
+            )
+        return del_tr_variants[:, affected_trs, :]
 
 
 class LMFeatures:

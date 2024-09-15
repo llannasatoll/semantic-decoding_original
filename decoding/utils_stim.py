@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 from sklearn.decomposition import PCA
+import joblib
 
 import config
 from utils_ridge.stimulus_utils import TRFile, load_textgrids, load_simulated_trfiles
@@ -10,6 +11,7 @@ from utils_ridge.interpdata import lanczosinterp2D
 from utils_ridge.util import make_delayed
 
 pca = PCA(n_components=1000)
+
 
 def get_story_wordseqs(stories):
     """loads words and word times of stimulus stories"""
@@ -34,7 +36,9 @@ def get_stim(stories, features, tr_stats=None):
 
     ds_vecs = {
         story: lanczosinterp2D(
-            word_vecs[story], word_seqs[story].data_times[wordind2tokind[story]], word_seqs[story].tr_times
+            word_vecs[story],
+            word_seqs[story].data_times[wordind2tokind[story]],
+            word_seqs[story].tr_times,
         )
         for story in stories
     }
@@ -50,6 +54,7 @@ def get_stim(stories, features, tr_stats=None):
     if features.model.llm == "llama3":
         if len(stories) > 1:
             pca.fit(ds_mat)
+            # joblib.dump(pca, "/home/anna/semantic-decoding_original/pca_model.pkl")
         ds_mat = pca.transform(ds_mat)
     del_mat = make_delayed(ds_mat, config.STIM_DELAYS)
     if tr_stats is None:

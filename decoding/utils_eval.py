@@ -73,20 +73,16 @@ def segment_data(data, times, cutoffs):
 """generate null sequences with same times as predicted sequence"""
 
 
-def generate_null(pred_times, gpt_checkpoint, n):
+def generate_null(pred_times, gpt_checkpoint, n, llm):
 
     # load language model
-    with open(os.path.join(config.DATA_LM_DIR, gpt_checkpoint, "vocab.json"), "r") as f:
-        gpt_vocab = json.load(f)
-    with open(os.path.join(config.DATA_LM_DIR, "decoder_vocab.json"), "r") as f:
-        decoder_vocab = json.load(f)
     gpt = GPT(
-        path=os.path.join(config.DATA_LM_DIR, gpt_checkpoint, "model"),
-        vocab=gpt_vocab,
+        llm=llm,
         device=config.GPT_DEVICE,
+        gpt=gpt_checkpoint,
     )
     lm = LanguageModel(
-        gpt, decoder_vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
+        gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
     )
 
     # generate null sequences
@@ -109,7 +105,7 @@ def generate_null(pred_times, gpt_checkpoint, n):
                 decoder.add_extensions(local_extensions, likelihoods, nextensions)
             decoder.extend(verbose=False)
         null_words.append(decoder.beam[0].words)
-    return null_words
+    return [gpt.decode_misencoded_text(null) for null in null_words]
 
 
 """

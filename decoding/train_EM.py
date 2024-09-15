@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     # save
     save_location = os.path.join(config.MODEL_DIR, args.subject)
-    os.makedirs(save_location, exist_ok=True)
+    os.makedirs(os.path.join(save_location, args.llm), exist_ok=True)
     np.savez(
         os.path.join(save_location, args.llm, "encoding_model_%s" % args.gpt),
         weights=weights,

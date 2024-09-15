@@ -18,9 +18,9 @@ from utils_eval import (
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
-    parser.add_argument("--experiment", type=str, required=True)
-    parser.add_argument("--task", type=str, required=True)
     parser.add_argument("--llm", type=str, required=True)
+    parser.add_argument("--task", type=str, default="wheretheressmoke")
+    parser.add_argument("--experiment", type=str, default="perceived_speech")
     parser.add_argument(
         "--metrics", nargs="+", type=str, default=["WER", "BLEU", "METEOR", "BERT"]
     )
@@ -146,4 +146,5 @@ if __name__ == "__main__":
         story_zscores=story_zscores,
         window_null_scores=window_null_scores,
         story_null_scores=story_null_scores,
+        null_word_list=np.array(null_word_list),
     )

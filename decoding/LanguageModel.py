@@ -189,13 +189,17 @@ STOPWORDS = {
 
 def get_nucleus(probs, nuc_mass, nuc_ratio):
     """identify words that constitute a given fraction of the probability mass"""
-    nuc_ids = np.where(probs >= np.max(probs) * nuc_ratio)[0]
-    nuc_pairs = sorted(zip(nuc_ids, probs[nuc_ids]), key=lambda x: -x[1])
-    sum_mass = np.cumsum([x[1] for x in nuc_pairs])
-    cutoffs = np.where(sum_mass >= nuc_mass)[0]
-    if len(cutoffs) > 0:
-        nuc_pairs = nuc_pairs[: cutoffs[0] + 1]
-    nuc_ids = [x[0] for x in nuc_pairs]
+    nuc_ids = []
+    while len(nuc_ids) == 0:
+        nuc_ids = np.where(probs >= np.max(probs) * nuc_ratio)[0]
+        nuc_pairs = sorted(zip(nuc_ids, probs[nuc_ids]), key=lambda x: -x[1])
+        sum_mass = np.cumsum([x[1] for x in nuc_pairs])
+        cutoffs = np.where(sum_mass >= nuc_mass)[0]
+        if len(cutoffs) > 0:
+            nuc_pairs = nuc_pairs[: cutoffs[0] + 1]
+        nuc_ids = [x[0] for x in nuc_pairs]
+        nuc_mass += 0.01
+        nuc_ratio -= 0.01
     return nuc_ids
 
 
@@ -248,7 +252,11 @@ class LanguageModel:
                     probs, nuc_mass=self.nuc_mass, nuc_ratio=self.nuc_ratio
                 )
                 nuc_words = [self.model.vocab[i] for i in nuc_ids if i in self.ids]
-                nuc_words = context_filter(nuc_words, context)
-                nuc_logprobs = np.log([probs[self.model.word2id[w]] for w in nuc_words])
+                nuc_words_filtered = context_filter(nuc_words, context[-5:])
+                if len(nuc_words_filtered) == 0:
+                    nuc_words_filtered = nuc_words
+                nuc_logprobs = np.log(
+                    [probs[self.model.word2id[w]] for w in nuc_words_filtered]
+                )
                 beam_nucs.append((nuc_words, nuc_logprobs))
             return beam_nucs

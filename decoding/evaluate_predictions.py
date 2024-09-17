@@ -65,7 +65,7 @@ if __name__ == "__main__":
         gpt_checkpoint = "imagined"
     else:
         gpt_checkpoint = "perceived"
-    null_word_list = generate_null(pred_times, gpt_checkpoint, args.null)
+    null_word_list = generate_null(pred_times, gpt_checkpoint, args.null, args.llm)
 
     window_scores, window_zscores = {}, {}
     story_scores, story_zscores = {}, {}
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                 (reference, mname)
             ].mean(1)
     save_location = os.path.join(
-        config.REPO_DIR, "scores", args.subject, args.experiment
+        config.SCORE_DIR, args.subject, args.experiment
     )
     os.makedirs(save_location, exist_ok=True)
     np.savez(

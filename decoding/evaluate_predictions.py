@@ -65,7 +65,7 @@ if __name__ == "__main__":
         gpt_checkpoint = "imagined"
     else:
         gpt_checkpoint = "perceived"
-    null_word_list = generate_null(pred_times, gpt_checkpoint, args.null, args.llm)
+    null_word_list = generate_null(pred_times, gpt_checkpoint, args.null, args.llm) if args.null else [[]]
 
     window_scores, window_zscores = {}, {}
     story_scores, story_zscores = {}, {}
@@ -131,12 +131,10 @@ if __name__ == "__main__":
                     ref=ref_windows, pred=pred_windows
                 )
             story_scores[(reference, mname)] = window_scores[(reference, mname)].mean()
-            story_null_scores[(reference, mname)] = window_null_scores[
-                (reference, mname)
-            ].mean(1)
-    save_location = os.path.join(
-        config.SCORE_DIR, args.subject, args.experiment
-    )
+            story_null_scores[(reference, mname)] = (
+                window_null_scores[(reference, mname)].mean(1) if args.null else None
+            )
+    save_location = os.path.join(config.SCORE_DIR, args.subject, args.experiment)
     os.makedirs(save_location, exist_ok=True)
     np.savez(
         os.path.join(save_location, args.task + "_" + args.llm),

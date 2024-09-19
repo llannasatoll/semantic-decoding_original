@@ -175,13 +175,14 @@ BERTScore (https://arxiv.org/abs/1904.09675)
 
 
 class BERTSCORE(object):
-    def __init__(self, mark, idf_sents=None, rescale=True, score="f"):
+    def __init__(self, mark, idf_sents=None, rescale=True, score="f", large=False):
         self.mark = mark
         self.metric = BERTScorer(
             lang="en",
             rescale_with_baseline=rescale,
             idf=(idf_sents is not None),
             idf_sents=idf_sents,
+            model_type = "microsoft/deberta-xlarge-mnli" if large else "roberta-large"
         )
         if score == "precision":
             self.score_id = 0

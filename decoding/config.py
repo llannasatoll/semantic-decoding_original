@@ -57,9 +57,13 @@ gpt = "perceived"
 MODELS = {
     "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
     "llama3": "meta-llama/Meta-Llama-3-8B",
+    "opt-13b": "facebook/opt-13b",
+    "gpt": "openai-community/openai-gpt",
 }
 
 MARK = {
     "original": " ",
     "llama3": "",
+    "opt-13b": "",
+    "gpt": "",
 }

@@ -21,6 +21,7 @@ class GPT:
     def __init__(self, llm, device="cpu", gpt="perceived", not_load_model=False):
         self.device = device
         self.llm = llm
+        self.outputs = None
         if llm == "original":
             self.model = (
                 (
@@ -54,6 +55,22 @@ class GPT:
                     if not not_load_model
                     else None
                 )
+            self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
+            self.word2id = self.tokenizer.vocab
+            self.vocab = [
+                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
+            ]
+            self.UNK_ID = (
+                self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
+            )
+        elif llm == "gpt":
+            self.model = (
+                AutoModelForCausalLM.from_pretrained(config.MODELS[llm])
+                .eval()
+                .to(self.device)
+                if not not_load_model
+                else None
+            )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -102,12 +119,12 @@ class GPT:
                     for tmp_i in range(id_i - 1, max(-1, id_i - 11), -1):
                         if self.tokenizer.decode(ids[tmp_i]) == "":
                             continue
-                        # For E5 models
+                        # For GPT models
                         if words[word_i] == self.tokenizer.decode(
                             ids[tmp_i : id_i + 1]
-                        ):
+                        ).replace(" ", ""):
                             break
-                        # For Llama3 and GPT models
+                        # For Llama3 models
                         if self.tokenizer.decode(ids[tmp_i])[0] == " ":
                             break
                     # The case where a word is formed
@@ -117,7 +134,7 @@ class GPT:
                             + words[word_i]
                         )
                         == self.tokenizer.decode(ids[tmp_i : id_i + 1])
-                        or words[word_i] == self.tokenizer.decode(ids[tmp_i : id_i + 1])
+                        or words[word_i] == self.tokenizer.decode(ids[tmp_i : id_i + 1]).replace(" ", "")
                         or (
                             (
                                 self.tokenizer.decode(ids[tmp_i])
@@ -147,7 +164,7 @@ class GPT:
                 else:
                     raise
                 wordind2tokind.append(append)
-        if len(ids) != len(wordind2tokind):
+        if (len(ids) != len(wordind2tokind)) or (len(words) - 1 > word_i):
             print(ids)
             print(wordind2tokind)
             print(words[word_i - 3 : words[word_i] + 3])
@@ -175,13 +192,29 @@ class GPT:
     def get_hidden(self, ids, layer):
         """get hidden layer representations"""
         mask = torch.ones(ids.shape).int()
-        with torch.no_grad():
-            outputs = self.model(
-                input_ids=ids.to(self.device),
-                attention_mask=mask.to(self.device),
-                output_hidden_states=True,
-            )
-        return outputs.hidden_states[layer].detach().cpu().numpy()
+        if self.llm == "gpt":
+            store_outputs = []
+            for i in range(0, ids.shape[0], 512):
+                chunk_ids = ids[i : i + 512, :]
+                mask = torch.ones(chunk_ids.shape).int()
+                with torch.no_grad():
+                    outputs = self.model(
+                        input_ids=chunk_ids.to(self.device),
+                        attention_mask=mask.to(self.device),
+                        output_hidden_states=True,
+                    )
+                store_outputs.append(
+                    outputs.hidden_states[layer].detach().cpu().numpy()
+                )
+            return np.vstack(store_outputs)
+        else:
+            with torch.no_grad():
+                outputs = self.model(
+                    input_ids=ids.to(self.device),
+                    attention_mask=mask.to(self.device),
+                    output_hidden_states=True,
+                )
+            return outputs.hidden_states[layer].detach().cpu().numpy()
 
     def get_probs(self, ids):
         """get next word probability distributions"""
@@ -191,7 +224,7 @@ class GPT:
                 input_ids=ids.to(self.device), attention_mask=mask.to(self.device)
             )
         probs = softmax(outputs.logits, dim=2).detach().cpu().numpy()
-        if self.llm == "llama3":
+        if self.llm != "original":
             probs[:, :, self.tokenizer.eos_token_id] = 0
         return probs
 

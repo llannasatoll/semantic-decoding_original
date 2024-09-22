@@ -27,10 +27,7 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = {
-    "original": 9,
-    "llama3": 11,
-}
+GPT_LAYER = {"original": 9, "llama3": 11, "gpt": 10, "opt": 0}
 GPT_WORDS = 5
 
 # decoder parameters
@@ -57,13 +54,13 @@ gpt = "perceived"
 MODELS = {
     "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
     "llama3": "meta-llama/Meta-Llama-3-8B",
-    "opt-13b": "facebook/opt-13b",
+    "opt": "facebook/opt-6.7b",
     "gpt": "openai-community/openai-gpt",
 }
 
 MARK = {
     "original": " ",
     "llama3": "",
-    "opt-13b": "",
+    "opt": "",
     "gpt": "",
 }

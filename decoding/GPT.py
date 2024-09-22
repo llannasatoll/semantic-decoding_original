@@ -80,7 +80,21 @@ class GPT:
                 self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
             )
         else:
-            raise
+            self.model = (
+                AutoModelForCausalLM.from_pretrained(
+                    config.MODELS[llm], device_map="balanced"
+                ).eval()
+                if not not_load_model
+                else None
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
+            self.word2id = self.tokenizer.vocab
+            self.vocab = [
+                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
+            ]
+            self.UNK_ID = (
+                self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
+            )
 
     def encode(self, words, is_test):
         """map from words to ids"""
@@ -134,7 +148,8 @@ class GPT:
                             + words[word_i]
                         )
                         == self.tokenizer.decode(ids[tmp_i : id_i + 1])
-                        or words[word_i] == self.tokenizer.decode(ids[tmp_i : id_i + 1]).replace(" ", "")
+                        or words[word_i]
+                        == self.tokenizer.decode(ids[tmp_i : id_i + 1]).replace(" ", "")
                         or (
                             (
                                 self.tokenizer.decode(ids[tmp_i])

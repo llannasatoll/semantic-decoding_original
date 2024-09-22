@@ -29,7 +29,8 @@ def get_stim(stories, features, tr_stats=None):
     word_vecs, wordind2tokind = {}, {}
     for story in stories:
         word_vecs[story], wordind2tokind[story] = features.make_stim(
-            word_seqs[story].data
+            word_seqs[story].data,
+            story=story,
         )
     word_mat = np.vstack([word_vecs[story] for story in stories])
     word_mean, word_std = word_mat.mean(0), word_mat.std(0)
@@ -51,10 +52,15 @@ def get_stim(stories, features, tr_stats=None):
     else:
         r_mean, r_std = tr_stats
     ds_mat = np.nan_to_num(np.dot((ds_mat - r_mean), np.linalg.inv(np.diag(r_std))))
-    if features.model.llm == "llama3":
+    if features.model.llm in ["llama3", "opt"]:
         if len(stories) > 1:
             pca.fit(ds_mat)
-            # joblib.dump(pca, "/home/anna/semantic-decoding_original/pca_model.pkl")
+            pca_path = (
+                "/Storage2/anna/semantic-decoding_original/pca_model_%s.pkl"
+                % features.model.llm
+            )
+            if not os.path.exists(pca_path):
+                joblib.dump(pca, pca_path)
         ds_mat = pca.transform(ds_mat)
     del_mat = make_delayed(ds_mat, config.STIM_DELAYS)
     if tr_stats is None:

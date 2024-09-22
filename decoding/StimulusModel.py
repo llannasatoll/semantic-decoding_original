@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import joblib
+import os
 
 torch.set_default_tensor_type(torch.FloatTensor)
 
@@ -113,11 +114,34 @@ class LMFeatures:
         embs = self.model.get_hidden(context_array, layer=self.layer)
         return embs[:, len(contexts[0]) - 1]
 
-    def make_stim(self, words):
+    def make_stim(self, words, story=None):
         """outputs matrix of features corresponding to the stimulus words"""
         context_array, wordind2tokind = self.model.get_story_array(
             words, self.context_words
         )
+        path = os.path.join(
+            config.DATA_TRAIN_DIR,
+            "train_stimulus",
+            "word_vecs_and_wordind2tokind",
+            str(story) + self.model.llm + ".npz",
+        )
+        if os.path.exists(path):
+            tmp = np.load(path)
+            context_array, wordind2tokind = (
+                tmp["context_array"],
+                tmp["wordind2tokind"],
+            )
+            context_array = torch.tensor(context_array).long()
+        else:
+            context_array, wordind2tokind = self.model.get_story_array(
+                words, self.context_words
+            )
+            if self.model.llm != "original" and (story is not None):
+                np.savez(
+                    path,
+                    context_array=np.array(context_array),
+                    wordind2tokind=np.array(wordind2tokind),
+                )
         if self.context_words < 0:
             return None, wordind2tokind
         embs = self.model.get_hidden(context_array, layer=self.layer)

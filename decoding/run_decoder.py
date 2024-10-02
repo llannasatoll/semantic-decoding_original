@@ -99,8 +99,8 @@ if __name__ == "__main__":
         lanczos_mat,
         tr_stats,
         word_stats[0],
+        args.llm,
         device=config.SM_DEVICE,
-        dim_pca=1000 if args.llm == "llama3" else None,
     )
     for sample_index in range(len(word_times)):
         trs = affected_trs(decoder.first_difference(), sample_index, lanczos_mat)

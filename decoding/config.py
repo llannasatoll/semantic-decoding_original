@@ -27,7 +27,7 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = {"original": 9, "llama3": 11, "gpt": 10, "opt": 0}
+GPT_LAYER = {"original": 9, "llama3": 11, "gpt": 10, "opt": 22}
 GPT_WORDS = 5
 
 # decoder parameters

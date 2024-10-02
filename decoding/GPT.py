@@ -239,12 +239,12 @@ class GPT:
                 input_ids=ids.to(self.device), attention_mask=mask.to(self.device)
             )
         probs = softmax(outputs.logits, dim=2).detach().cpu().numpy()
-        if self.llm != "original":
-            probs[:, :, self.tokenizer.eos_token_id] = 0
+        if (self.llm != "original") and (self.tokenizer.eos_token_id):
+            probs[:, :, self.tokenizer.eos_token_id] = 1e-10
         return probs
 
     def decode_misencoded_text(self, words):
-        if self.llm == "llama3":
+        if self.llm in ["llama3", "opt"]:
             return [
                 w.replace("Ġ", " ")
                 .replace("âĢĻ", "'")
@@ -254,6 +254,10 @@ class GPT:
                 .replace("<|end_of_text|>a", "")
                 .replace("<|begin_of_text|>", "")
                 .replace("Âł", " ")
+                .replace("âĢ", "")
+                .replace("ĺ", "")
                 for w in words
             ]
+        elif self.llm in ["gpt"]:
+            return [w.replace("</w>", " ") for w in words]
         return words

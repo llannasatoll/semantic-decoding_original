@@ -4,6 +4,8 @@ from nltk.stem.snowball import SnowballStemmer
 stemmer = SnowballStemmer("english")
 
 INIT = ["i", "we", "she", "he", "they", "it"]
+# INIT = ["i</w>", "we</w>", "she</w>", "he</w>", "they</w>", "it</w>"]
+
 STOPWORDS = {
     "is",
     "does",

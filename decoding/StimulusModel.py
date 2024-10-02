@@ -34,13 +34,13 @@ def affected_trs(start_index, end_index, lanczos_mat, delay=True):
 class StimulusModel:
     """class for constructing stimulus features"""
 
-    def __init__(self, lanczos_mat, tr_stats, word_mean, device="cpu", dim_pca=None):
+    def __init__(self, lanczos_mat, tr_stats, word_mean, llm, device="cpu"):
         self.device = device
+        self.llm = llm
         self.lanczos_mat = torch.from_numpy(lanczos_mat).float().to(self.device)
         self.tr_mean = torch.from_numpy(tr_stats[0]).float().to(device)
         self.tr_std_inv = torch.from_numpy(np.diag(1 / tr_stats[1])).float().to(device)
         self.blank = torch.from_numpy(word_mean).float().to(self.device)
-        self.dim_pca = dim_pca
 
     def _downsample(self, variants):
         """downsamples word embeddings to TR embeddings for each hypothesis"""
@@ -84,17 +84,22 @@ class StimulusModel:
                 torch.tensor(np.array(var_embs)).float().to(self.device)
             )
             tr_variants = self._normalize(self._downsample(variants))
-            pca = joblib.load("/Storage2/anna/semantic-decoding_original/pca_model.pkl")
-            tr_variants_pca = pca.transform(
-                tr_variants.to("cpu").reshape(-1, tr_variants.shape[-1])
+            pca_path = (
+                "/Storage2/anna/semantic-decoding_original/pca_model_%s.pkl"
+                % self.llm
             )
-            tr_variants = tr_variants_pca.reshape(
-                tr_variants.shape[0], tr_variants.shape[1], -1
-            )
+            if os.path.exists(pca_path):
+                pca = joblib.load(pca_path)
+                tr_variants_pca = pca.transform(
+                    tr_variants.to("cpu").reshape(-1, tr_variants.shape[-1])
+                )
+                tr_variants = tr_variants_pca.reshape(
+                    tr_variants.shape[0], tr_variants.shape[1], -1
+                )
             del_tr_variants = self._delay(
                 torch.tensor(tr_variants).float().to(self.device),
                 n_variants,
-                n_feats if self.dim_pca is None else self.dim_pca,
+                pca.n_components if os.path.exists(pca_path) else n_feats,
             )
         return del_tr_variants[:, affected_trs, :]
 

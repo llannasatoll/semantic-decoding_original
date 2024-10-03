@@ -256,6 +256,8 @@ class GPT:
                 .replace("Âł", " ")
                 .replace("âĢ", "")
                 .replace("ĺ", "")
+                .replace("Ãł", "à")
+                .replace("Ã©", "é")
                 for w in words
             ]
         elif self.llm in ["gpt"]:

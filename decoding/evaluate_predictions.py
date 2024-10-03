@@ -26,6 +26,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--references", nargs="+", type=str, default=[])
     parser.add_argument("--null", type=int, default=10)
+    parser.add_argument("--format", action="store_true")
     args = parser.parse_args()
 
     if len(args.references) == 0:
@@ -89,6 +90,14 @@ if __name__ == "__main__":
         ref_data = load_transcript(args.experiment, reference)
         ref_words, ref_times = ref_data["words"], ref_data["times"]
 
+        if args.format:
+            for c in [".", '"', "?", "!", "”", "“", "âĢ", "ĺ", "ĵ", "\n", ":"]:
+                ref_words = [word.lower().replace(c, "") for word in ref_words]
+                pred_words = [word.lower().replace(c, "") for word in pred_words]
+                null_word_list = [
+                    [word.lower().replace(c, "") for word in null_words]
+                    for null_words in null_word_list
+                ]
         # segment prediction and reference words into windows
         window_cutoffs = windows(*eval_segments[args.task], config.WINDOW)
         ref_windows = segment_data(ref_words, ref_times, window_cutoffs)
@@ -149,7 +158,10 @@ if __name__ == "__main__":
             )
     os.makedirs(save_location, exist_ok=True)
     np.savez(
-        os.path.join(save_location, args.task + "_" + args.llm),
+        os.path.join(
+            save_location,
+            args.task + "_" + args.llm + ("_format" if args.format else ""),
+        ),
         window_scores=window_scores,
         window_zscores=window_zscores,
         story_scores=story_scores,

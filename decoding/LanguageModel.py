@@ -3,8 +3,12 @@ from nltk.stem.snowball import SnowballStemmer
 
 stemmer = SnowballStemmer("english")
 
-INIT = ["i", "we", "she", "he", "they", "it"]
-# INIT = ["i</w>", "we</w>", "she</w>", "he</w>", "they</w>", "it</w>"]
+INIT = {
+    "original": ["i", "we", "she", "he", "they", "it"],
+    "llama3": ["I", "We", "She", "He", "They", "It"],
+    "opt": ["I", "We", "She", "He", "They", "It"],
+    "gpt": ["i</w>", "we</w>", "she</w>", "he</w>", "they</w>", "it</w>"],
+}
 
 STOPWORDS = {
     "is",
@@ -242,7 +246,9 @@ class LanguageModel:
     def beam_propose(self, beam, context_words):
         """get possible extension words for each hypothesis in the decoder beam"""
         if len(beam) == 1:
-            nuc_words = [w for w in INIT if self.model.word2id[w] in self.ids]
+            nuc_words = [
+                w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
+            ]
             nuc_logprobs = np.log(np.ones(len(nuc_words)) / len(nuc_words))
             return [(nuc_words, nuc_logprobs)]
         else:
@@ -254,7 +260,7 @@ class LanguageModel:
                     probs, nuc_mass=self.nuc_mass, nuc_ratio=self.nuc_ratio
                 )
                 nuc_words = [self.model.vocab[i] for i in nuc_ids if i in self.ids]
-                nuc_words_filtered = context_filter(nuc_words, context[-5:])
+                nuc_words_filtered = context_filter(nuc_words, context[-20:])
                 if len(nuc_words_filtered) == 0:
                     nuc_words_filtered = nuc_words
                 nuc_logprobs = np.log(

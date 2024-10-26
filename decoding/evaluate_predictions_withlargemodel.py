@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 import argparse
+import inflect
 
 import config
 from utils_eval import (
@@ -66,6 +67,7 @@ if __name__ == "__main__":
     window_scores, window_zscores = {}, {}
     story_scores, story_zscores = {}, {}
     window_null_scores, story_null_scores = {}, {}
+    p = inflect.engine()
     for reference in args.references:
 
         # load reference transcript
@@ -73,11 +75,50 @@ if __name__ == "__main__":
         ref_words, ref_times = ref_data["words"], ref_data["times"]
 
         if args.format:
-            for c in [".", '"', "?", "!", "”", "“", "âĢ", "ĺ", "ĵ", "\n", ":"]:
-                ref_words = [word.lower().replace(c, "") for word in ref_words]
-                pred_words = [word.lower().replace(c, "") for word in pred_words]
+            print("FORMAT!")
+            for c in [
+                ".",
+                '"',
+                "?",
+                "!",
+                "”",
+                "“",
+                "âĢ",
+                "ĺ",
+                "ĵ",
+                "\n",
+                ":",
+                "(",
+                ")",
+                ",",
+            ]:
+                replace = " " if c == "\n" else ""
+                pred_words = [
+                    p.number_to_words(int(word))
+                    if word.isdecimal()
+                    else word.lower().replace(c, replace)
+                    for word in pred_words
+                ]
                 null_word_list = [
-                    [word.lower().replace(c, "") for word in null_words]
+                    [
+                        p.number_to_words(int(word))
+                        if word.isdecimal()
+                        else word.lower().replace(c, replace)
+                        for word in null_words
+                    ]
+                    for null_words in null_word_list
+                ]
+        if args.format and (args.llm == "gpt"):
+            for c in ["n't", "'d", "'ll", "'s", "'re"]:
+                pred_words = [
+                    word.replace(" "+c, c)
+                    for word in pred_words
+                ]
+                null_word_list = [
+                    [
+                        word.replace(" "+c, c)
+                        for word in null_words
+                    ]
                     for null_words in null_word_list
                 ]
         # segment prediction and reference words into windows

@@ -251,7 +251,7 @@ class GPT:
                 .replace("Ċ", "\n")
                 .replace("âĢľ", "“")
                 .replace("âĢĿ", "”")
-                .replace("<|end_of_text|>a", "")
+                .replace("<|end_of_text|>", "")
                 .replace("<|begin_of_text|>", "")
                 .replace("Âł", " ")
                 .replace("âĢ", "")

@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
     # load gpt
     gpt = GPT(
-        llm=encoding_model["llm"].item(),
+        llm=args.llm,
         device=config.GPT_DEVICE,
         gpt=gpt_checkpoint,
     )
@@ -125,4 +125,4 @@ if __name__ == "__main__":
         decoder.word_times += 10
     save_location = os.path.join(config.RESULT_DIR, args.subject, args.experiment)
     os.makedirs(save_location, exist_ok=True)
-    decoder.save(os.path.join(save_location, args.task + "_" + args.llm), gpt)
+    decoder.save(os.path.join(save_location, args.task + "_" + args.llm + "_pr"), gpt)

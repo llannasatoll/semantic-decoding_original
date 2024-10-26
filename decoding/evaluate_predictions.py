@@ -2,6 +2,7 @@ import os
 import numpy as np
 import json
 import argparse
+import inflect
 
 import config
 from utils_eval import (
@@ -56,7 +57,7 @@ if __name__ == "__main__":
         config.RESULT_DIR,
         args.subject,
         args.experiment,
-        args.task + "_" + args.llm + ".npz",
+        args.task + "_" + args.llm + "_2.npz",
     )
     pred_data = np.load(pred_path)
     pred_words, pred_times = pred_data["words"], pred_data["times"]
@@ -73,9 +74,10 @@ if __name__ == "__main__":
             os.path.join(save_location, args.task + "_" + args.llm) + ".npz"
         )
         null_word_list = result["null_word_list"].tolist()
+        prs_list = result["prs_list"].tolist()
     else:
-        null_word_list = (
-            generate_null(pred_times, gpt_checkpoint, args.null, args.llm)
+        null_word_list, prs_list = (
+            generate_null(pred_times, gpt_checkpoint, args.null, args.llm, args.subject)
             if args.null
             else [[]]
         )
@@ -84,6 +86,7 @@ if __name__ == "__main__":
     window_scores, window_zscores = {}, {}
     story_scores, story_zscores = {}, {}
     window_null_scores, story_null_scores = {}, {}
+    p = inflect.engine()
     for reference in args.references:
 
         # load reference transcript
@@ -91,11 +94,44 @@ if __name__ == "__main__":
         ref_words, ref_times = ref_data["words"], ref_data["times"]
 
         if args.format:
-            for c in [".", '"', "?", "!", "”", "“", "âĢ", "ĺ", "ĵ", "\n", ":"]:
-                ref_words = [word.lower().replace(c, "") for word in ref_words]
-                pred_words = [word.lower().replace(c, "") for word in pred_words]
+            print("FORMAT!")
+            for c in [
+                ".",
+                '"',
+                "?",
+                "!",
+                "”",
+                "“",
+                "âĢ",
+                "ĺ",
+                "ĵ",
+                "\n",
+                ":",
+                "(",
+                ")",
+                ",",
+            ]:
+                replace = " " if c == "\n" else ""
+                pred_words = [
+                    p.number_to_words(int(word))
+                    if word.isdecimal()
+                    else word.lower().replace(c, replace)
+                    for word in pred_words
+                ]
                 null_word_list = [
-                    [word.lower().replace(c, "") for word in null_words]
+                    [
+                        p.number_to_words(int(word))
+                        if word.isdecimal()
+                        else word.lower().replace(c, replace)
+                        for word in null_words
+                    ]
+                    for null_words in null_word_list
+                ]
+        if args.format and (args.llm == "gpt"):
+            for c in ["n't", "'d", "'ll", "'s", "'re"]:
+                pred_words = [word.replace(" " + c, c) for word in pred_words]
+                null_word_list = [
+                    [word.replace(" " + c, c) for word in null_words]
                     for null_words in null_word_list
                 ]
         # segment prediction and reference words into windows
@@ -160,7 +196,7 @@ if __name__ == "__main__":
     np.savez(
         os.path.join(
             save_location,
-            args.task + "_" + args.llm + ("_format" if args.format else ""),
+            args.task + "_" + args.llm + ("_format" if args.format else "") + "_2",
         ),
         window_scores=window_scores,
         window_zscores=window_zscores,
@@ -169,4 +205,5 @@ if __name__ == "__main__":
         window_null_scores=window_null_scores,
         story_null_scores=story_null_scores,
         null_word_list=np.array(null_word_list),
+        prs_list=np.array(prs_list),
     )

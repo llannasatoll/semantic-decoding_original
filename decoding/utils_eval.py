@@ -1,11 +1,15 @@
 import os
 import numpy as np
 import json
+import h5py
 
 import config
 from GPT import GPT
 from Decoder import Decoder, Hypothesis
 from LanguageModel import LanguageModel
+from EncodingModel import EncodingModel
+from StimulusModel import StimulusModel, get_lanczos_mat, affected_trs, LMFeatures
+from utils_stim import predict_word_rate, predict_word_times
 
 from jiwer import wer
 from datasets import load_metric
@@ -70,10 +74,61 @@ def segment_data(data, times, cutoffs):
     ]
 
 
+def get_em_environ(llm, subject):
+    # load responses
+    hf = h5py.File(
+        os.path.join(
+            config.DATA_TEST_DIR,
+            "test_response",
+            subject,
+            "perceived_speech",
+            "wheretheressmoke" + ".hf5",
+        ),
+        "r",
+    )
+    resp = np.nan_to_num(hf["data"][:])
+    hf.close()
+
+    load_location = os.path.join(config.MODEL_DIR, subject)
+    encoding_model = np.load(
+        os.path.join(load_location, llm, "encoding_model_%s.npz" % "perceived")
+    )
+    word_rate_model = np.load(
+        os.path.join(load_location, llm, "word_rate_model_%s.npz" % "auditory"),
+        allow_pickle=True,
+    )
+    weights = encoding_model["weights"]
+    noise_model = encoding_model["noise_model"]
+    tr_stats = encoding_model["tr_stats"]
+    word_stats = encoding_model["word_stats"]
+    em = EncodingModel(
+        resp, weights, encoding_model["voxels"], noise_model, device=config.EM_DEVICE
+    )
+    em.set_shrinkage(config.NM_ALPHA)
+
+    # predict word times
+    word_rate = predict_word_rate(
+        resp,
+        word_rate_model["weights"],
+        word_rate_model["voxels"],
+        word_rate_model["mean_rate"],
+    )
+    word_times, tr_times = predict_word_times(word_rate, np.zeros(291), starttime=-10)
+    lanczos_mat = get_lanczos_mat(word_times, tr_times)
+    sm = StimulusModel(
+        lanczos_mat,
+        tr_stats,
+        word_stats[0],
+        llm,
+        device=config.SM_DEVICE,
+    )
+    return sm, em, lanczos_mat
+
+
 """generate null sequences with same times as predicted sequence"""
 
 
-def generate_null(pred_times, gpt_checkpoint, n, llm):
+def generate_null(pred_times, gpt_checkpoint, n, llm, subject):
 
     # load language model
     gpt = GPT(
@@ -84,12 +139,17 @@ def generate_null(pred_times, gpt_checkpoint, n, llm):
     lm = LanguageModel(
         gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
     )
-
+    features = LMFeatures(
+        model=gpt, layer=config.GPT_LAYER[llm], context_words=config.GPT_WORDS
+    )
+    sm, em, lanczos_mat = get_em_environ(llm, subject)
     # generate null sequences
     null_words = []
+    prs_list = []
     for _count in range(n):
         decoder = Decoder(pred_times, 2 * config.EXTENSIONS)
         for sample_index in range(len(pred_times)):
+            trs = affected_trs(decoder.first_difference(), sample_index, lanczos_mat)
             ncontext = decoder.time_window(sample_index, config.LM_TIME, floor=5)
             beam_nucs = lm.beam_propose(decoder.beam, ncontext)
             for c, (hyp, nextensions) in enumerate(decoder.get_hypotheses()):
@@ -97,7 +157,10 @@ def generate_null(pred_times, gpt_checkpoint, n, llm):
                 if len(nuc) < 1:
                     continue
                 extend_words = [hyp.words + [x] for x in nuc]
-                likelihoods = np.random.random(len(nuc))
+                extend_embs = list(features.extend(extend_words))
+                stim = sm.make_variants(sample_index, hyp.embs, extend_embs, trs)
+                likelihoods = em.prs(stim, trs)
+                # likelihoods = np.random.random(len(nuc))
                 local_extensions = [
                     Hypothesis(parent=hyp, extension=x)
                     for x in zip(nuc, logprobs, [np.zeros(1) for _ in nuc])
@@ -105,7 +168,8 @@ def generate_null(pred_times, gpt_checkpoint, n, llm):
                 decoder.add_extensions(local_extensions, likelihoods, nextensions)
             decoder.extend(verbose=False)
         null_words.append(decoder.beam[0].words)
-    return [gpt.decode_misencoded_text(null) for null in null_words]
+        prs_list.append(decoder.prs_lst)
+    return [gpt.decode_misencoded_text(null) for null in null_words], prs_list
 
 
 """
@@ -182,7 +246,7 @@ class BERTSCORE(object):
             rescale_with_baseline=rescale,
             idf=(idf_sents is not None),
             idf_sents=idf_sents,
-            model_type = "microsoft/deberta-xlarge-mnli" if large else "roberta-large"
+            model_type="microsoft/deberta-xlarge-mnli" if large else "roberta-large",
         )
         if score == "precision":
             self.score_id = 0

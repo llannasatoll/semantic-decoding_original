@@ -10,6 +10,7 @@ class Decoder(object):
         self.beam_width, self.extensions = beam_width, extensions
         self.beam = [Hypothesis()]  # initialize with empty hypothesis
         self.scored_extensions = []  # global extension pool
+        self.prs_lst = []
 
     def first_difference(self):
         """get first index where hypotheses on the beam differ"""
@@ -49,20 +50,28 @@ class Decoder(object):
 
     def extend(self, verbose=False):
         """update beam based on global extension pool"""
+        print("num candidate :", len(self.scored_extensions))
         self.beam = [
             x[0]
             for x in sorted(self.scored_extensions, key=lambda x: -x[1])[
                 : self.beam_width
             ]
         ]
+        self.prs_lst.append(max(self.scored_extensions, key=lambda x: x[1])[1])
         self.scored_extensions = []
         if verbose:
+            print("pr : ", self.prs_lst[-1])
             print(self.beam[0].words)
 
     def save(self, path, gpt):
         """save decoder results"""
         words = gpt.decode_misencoded_text(self.beam[0].words)
-        np.savez(path, words=np.array(words), times=np.array(self.word_times))
+        np.savez(
+            path,
+            words=np.array(words),
+            times=np.array(self.word_times),
+            prs_lst=self.prs_lst,
+        )
 
 
 class Hypothesis(object):

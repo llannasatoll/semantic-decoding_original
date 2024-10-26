@@ -78,9 +78,9 @@ if __name__ == "__main__":
         ) as hf:
             resp = np.nan_to_num(hf["data"][:])
         layers = (
-            [1, 3, 5, 7, 9, 11]
+            list(range(1,13))
             if args.llm in ["original", "gpt"]
-            else [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31]
+            else [2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27,29,30] # list(range(1,33))
         )
 
     gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt)

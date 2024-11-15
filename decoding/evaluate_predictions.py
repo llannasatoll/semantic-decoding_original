@@ -57,7 +57,7 @@ if __name__ == "__main__":
         config.RESULT_DIR,
         args.subject,
         args.experiment,
-        args.task + "_" + args.llm + "_2.npz",
+        args.task + "_" + args.llm + ".npz",
     )
     pred_data = np.load(pred_path)
     pred_words, pred_times = pred_data["words"], pred_data["times"]
@@ -74,7 +74,7 @@ if __name__ == "__main__":
             os.path.join(save_location, args.task + "_" + args.llm) + ".npz"
         )
         null_word_list = result["null_word_list"].tolist()
-        prs_list = result["prs_list"].tolist()
+        # prs_list = result["prs_list"].tolist()
     else:
         null_word_list, prs_list = (
             generate_null(pred_times, gpt_checkpoint, args.null, args.llm, args.subject)
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     np.savez(
         os.path.join(
             save_location,
-            args.task + "_" + args.llm + ("_format" if args.format else "") + "_2",
+            args.task + "_" + args.llm + ("_format" if args.format else ""),
         ),
         window_scores=window_scores,
         window_zscores=window_zscores,
@@ -205,5 +205,5 @@ if __name__ == "__main__":
         window_null_scores=window_null_scores,
         story_null_scores=story_null_scores,
         null_word_list=np.array(null_word_list),
-        prs_list=np.array(prs_list),
+        # prs_list=np.array(prs_list),
     )

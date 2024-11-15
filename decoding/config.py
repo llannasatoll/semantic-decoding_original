@@ -10,7 +10,7 @@ DATA_TRAIN_DIR = os.path.join(REPO_DIR, "data_train")
 DATA_TEST_DIR = os.path.join(REPO_DIR, "data_test")
 MODEL_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models"
-)#.replace("Storage2", "home")
+).replace("Storage2", "home")
 RESULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
 ).replace("Storage2", "home")
@@ -27,8 +27,9 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = {"original": 9, "llama3": 11, "gpt": 10, "opt": 22}
+GPT_LAYER = {"original": 9, "llama3": 13, "gpt": 10, "opt": 22}
 GPT_WORDS = 5
+IS_PCA = True
 
 # decoder parameters
 

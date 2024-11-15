@@ -70,7 +70,7 @@ def ridge_corr(
     dtype=np.single,
     corrmin=0.2,
     singcutoff=1e-10,
-    use_corr=True,
+    use_gauss=True,
     logger=logging.getLogger("ridge_corr"),
 ):
     """Uses ridge regression to find a linear transformation of [Rstim] that approximates [Rresp].
@@ -176,11 +176,13 @@ def ridge_corr(
         # wt = reduce(np.dot, [Vh.T, D, U.T, Rresp]).astype(dtype) ## Worst
         # pred = np.dot(Pstim, wt) ## Predict test responses
 
-        if use_corr:
+        if use_gauss:
             # prednorms = np.apply_along_axis(np.linalg.norm, 0, pred) ## Compute predicted test response norms
             # Rcorr = np.array([np.corrcoef(Presp[:,ii], pred[:,ii].ravel())[0,1] for ii in range(Presp.shape[1])]) ## Slowly compute correlations
             # Rcorr = np.array(np.sum(np.multiply(Presp, pred), 0)).squeeze()/(prednorms*Prespnorms) ## Efficiently compute correlations
-            Rcorr = (zPresp * zs(pred)).mean(0)
+            # Rcorr = (zPresp * zs(pred)).mean(0)
+            diff = np.linalg.norm(Presp - pred, axis=0)
+            Rcorr = -1 * diff
         else:
             ## Compute variance explained
             resvar = (Presp - pred).var(0)
@@ -218,7 +220,7 @@ def bootstrap_ridge(
     singcutoff=1e-10,
     normalpha=False,
     single_alpha=False,
-    use_corr=True,
+    use_gauss=True,
     logger=logging.getLogger("ridge_corr"),
 ):
     """Uses ridge regression with a bootstrapped held-out set to get optimal alpha values for each response.
@@ -325,7 +327,7 @@ def bootstrap_ridge(
             corrmin=corrmin,
             singcutoff=singcutoff,
             normalpha=normalpha,
-            use_corr=use_corr,
+            use_gauss=use_gauss,
             logger=logger,
         )
 

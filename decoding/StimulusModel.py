@@ -88,18 +88,10 @@ class StimulusModel:
                 "/Storage2/anna/semantic-decoding_original/pca_model_%s.pkl"
                 % self.llm
             )
-            if os.path.exists(pca_path):
-                pca = joblib.load(pca_path)
-                tr_variants_pca = pca.transform(
-                    tr_variants.to("cpu").reshape(-1, tr_variants.shape[-1])
-                )
-                tr_variants = tr_variants_pca.reshape(
-                    tr_variants.shape[0], tr_variants.shape[1], -1
-                )
             del_tr_variants = self._delay(
                 torch.tensor(tr_variants).float().to(self.device),
                 n_variants,
-                pca.n_components if os.path.exists(pca_path) else n_feats,
+                n_feats,
             )
         return del_tr_variants[:, affected_trs, :]
 
@@ -121,9 +113,6 @@ class LMFeatures:
 
     def make_stim(self, words, story=None):
         """outputs matrix of features corresponding to the stimulus words"""
-        context_array, wordind2tokind = self.model.get_story_array(
-            words, self.context_words
-        )
         path = os.path.join(
             config.DATA_TRAIN_DIR,
             "train_stimulus",

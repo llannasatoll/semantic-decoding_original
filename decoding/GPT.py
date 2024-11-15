@@ -80,13 +80,32 @@ class GPT:
                 self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
             )
         else:
-            self.model = (
-                AutoModelForCausalLM.from_pretrained(
-                    config.MODELS[llm], device_map="balanced"
-                ).eval()
-                if not not_load_model
-                else None
-            )
+            if "boole" in HOSTNAME:
+                self.model = (
+                    AutoModelForCausalLM.from_pretrained(
+                        config.MODELS[llm], device_map="auto", max_memory={0: "5GB", 1: "5GB", 2: "49GB"}
+                    ).eval()
+                    if not not_load_model
+                    else None
+                )
+            elif "riemann" in HOSTNAME:
+                self.model = (
+                    AutoModelForCausalLM.from_pretrained(
+                        config.MODELS[llm], device_map="balanced"
+                    ).eval()
+                    if not not_load_model
+                    else None
+                )
+            else:
+                self.model = (
+                    AutoModelForCausalLM.from_pretrained(
+                        # config.MODELS[llm], device_map="balanced"
+                        # config.MODELS[llm], device_map="auto", max_memory={0: "10GB", 1: "0GB", 2: "20GB", 3: "20GB"}
+                        config.MODELS[llm], device_map="auto", max_memory={0: "1GB", 1: "0GB", 2: "25GB", 3: "13GB"}, offload_folder="./"
+                    ).eval()
+                    if not not_load_model
+                    else None
+                )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -224,11 +243,18 @@ class GPT:
             return np.vstack(store_outputs)
         else:
             with torch.no_grad():
-                outputs = self.model(
-                    input_ids=ids.to(self.device),
-                    attention_mask=mask.to(self.device),
-                    output_hidden_states=True,
-                )
+                if HOSTNAME == "riemann":
+                    outputs = self.model(
+                        input_ids=ids.to(self.device),
+                        attention_mask=mask.to(self.device),
+                        output_hidden_states=True,
+                    )
+                else:
+                    outputs = self.model(
+                        input_ids=ids.to("cuda:0"),
+                        attention_mask=mask.to("cuda:1"),
+                        output_hidden_states=True,
+                    )
             return outputs.hidden_states[layer].detach().cpu().numpy()
 
     def get_probs(self, ids):

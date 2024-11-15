@@ -15,6 +15,7 @@ from utils_resp import get_resp
 from utils_ridge.ridge import ridge, bootstrap_ridge
 
 np.random.seed(42)
+zs = lambda v: (v - v.mean(0)) / v.std(0)  ## z-score function
 
 
 def compute_correlation(x, y):
@@ -54,6 +55,7 @@ if __name__ == "__main__":
         type=int,
         default=[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 18, 20],
     )
+    parser.add_argument("--use_gauss", action="store_true")
     args = parser.parse_args()
 
     # training stories
@@ -78,9 +80,9 @@ if __name__ == "__main__":
         ) as hf:
             resp = np.nan_to_num(hf["data"][:])
         layers = (
-            list(range(1,13))
+            list(range(1, 13))
             if args.llm in ["original", "gpt"]
-            else [2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27,29,30] # list(range(1,33))
+            else [2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27,29,30,32] # list(range(1,33))
         )
 
     gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt)
@@ -99,7 +101,7 @@ if __name__ == "__main__":
         weights, alphas, bscorrs = bootstrap_ridge(
             rstim,
             rresp,
-            use_corr=False,
+            use_gauss=args.use_gauss,
             alphas=config.ALPHAS,
             nboots=config.NBOOTS,
             chunklen=config.CHUNKLEN,
@@ -114,12 +116,18 @@ if __name__ == "__main__":
             # Calculate correlation using test story.
             rstim = get_stim(["wheretheressmoke"], features, tr_stats=tr_stats)
             pred = rstim.dot(weights)
-            corr = np.array(
-                [
-                    compute_correlation(resp[:, i], pred[:, i])
-                    for i in range(resp.shape[-1])
-                ]
-            )
+            if args.use_gauss:
+                diff = np.linalg.norm(resp - pred, axis=0)
+                logger.warning(
+                    f"({layer},[{-1 * diff.mean()}, {-1 * diff[np.argsort(diff)][:len(diff)//2].mean()}, {-1 * diff[np.argsort(diff)][:10000].mean()}]),"
+                )
+            else:
+                corr = np.array(
+                    [
+                        compute_correlation(resp[:, i], pred[:, i])
+                        for i in range(resp.shape[-1])
+                    ]
+                )
             logger.warning(f"Layer : {layer} , mean(fdr(corr)) : {corr.mean()}")
     if args.notsave:
         exit()

@@ -52,7 +52,7 @@ def get_stim(stories, features, tr_stats=None):
     else:
         r_mean, r_std = tr_stats
     ds_mat = np.nan_to_num(np.dot((ds_mat - r_mean), np.linalg.inv(np.diag(r_std))))
-    if features.model.llm in ["llama3", "opt"]:
+    if config.IS_PCA and features.model.llm in ["llama3", "opt"]:
         if len(stories) > 1:
             pca.fit(ds_mat)
             pca_path = (

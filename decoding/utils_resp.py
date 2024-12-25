@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import socket
 import h5py
 
 import config
@@ -8,6 +9,7 @@ import config
 def get_resp(subject, stories, stack=True, vox=None):
     """loads response data"""
     subject_dir = os.path.join(config.DATA_TRAIN_DIR, "train_response", subject)
+    if socket.gethostname() == "c47fd80fcaac": subject_dir = subject_dir.replace("Storage2", "home")
     resp = {}
     for story in stories:
         resp_path = os.path.join(subject_dir, "%s.hf5" % story)

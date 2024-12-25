@@ -16,8 +16,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
     parser.add_argument("--llm", type=str, required=True)
-    parser.add_argument("--task", type=str, default="wheretheressmoke")
     parser.add_argument("--experiment", type=str, default="perceived_speech")
+    parser.add_argument("--task", type=str, default="wheretheressmoke")
     args = parser.parse_args()
 
     # determine GPT checkpoint based on experiment

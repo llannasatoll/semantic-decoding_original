@@ -6,8 +6,16 @@ stemmer = SnowballStemmer("english")
 INIT = {
     "original": ["i", "we", "she", "he", "they", "it"],
     "llama3": ["I", "We", "She", "He", "They", "It"],
+    "llama70b": ["I", "We", "She", "He", "They", "It"],
     "opt": ["I", "We", "She", "He", "They", "It"],
     "gpt": ["i</w>", "we</w>", "she</w>", "he</w>", "they</w>", "it</w>"],
+}
+
+PROMPT = {
+    "llama3": ['<|begin_of_text|>', 'I', "'ll", 'Ġbriefly', 'Ġdescribe', 'Ġthe', 'Ġscene', 'Ġfrom', 'Ġthe', 'Ġmovie', 'ĠI', "'m", 'Ġcurrently', 'Ġwatching', '.'],
+    "llama70b": ['<|begin_of_text|>', 'I', "'ll", 'Ġbriefly', 'Ġdescribe', 'Ġthe', 'Ġscene', 'Ġfrom', 'Ġthe', 'Ġmovie', 'ĠI', "'m", 'Ġcurrently', 'Ġwatching', '.'],
+    "opt": ['</s>', 'I', "'ll", 'Ġbriefly', 'Ġdescribe', 'Ġthe', 'Ġscene', 'Ġfrom', 'Ġthe', 'Ġmovie', 'ĠI', "'m", 'Ġcurrently', 'Ġwatching', '.'],
+    "original": ["i'll</w>", "briefly</w>", "describe</w>", "the</w>", "scene</w>", "from</w>", "the</w>", "movie</w>", "i'm</w>", "currently</w>", "watching</w>", "."]
 }
 
 STOPWORDS = {
@@ -252,7 +260,11 @@ class LanguageModel:
             nuc_logprobs = np.log(np.ones(len(nuc_words)) / len(nuc_words))
             return [(nuc_words, nuc_logprobs)]
         else:
-            contexts = [hyp.words[-context_words:] for hyp in beam]
+            if len(beam[0].words) < context_words:
+                contexts = [PROMPT[self.model.llm] + hyp.words for hyp in beam]
+            else:
+                contexts = [hyp.words[-context_words:] for hyp in beam]
+
             beam_probs = self.ps(contexts)
             beam_nucs = []
             for context, probs in zip(contexts, beam_probs):

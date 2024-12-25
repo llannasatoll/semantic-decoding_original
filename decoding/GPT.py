@@ -37,24 +37,56 @@ class GPT:
             self.word2id = {w: i for i, w in enumerate(self.vocab)}
             self.UNK_ID = self.word2id["<unk>"]
         elif llm == "llama3":
-            if HOSTNAME == "riemann":
-                self.model = (
-                    (
-                        LlamaForCausalLM.from_pretrained(config.MODELS[llm])
-                        .eval()
-                        .to(self.device)
-                    )
-                    if not not_load_model
-                    else None
+            self.model = (
+                LlamaForCausalLM.from_pretrained(
+                    config.MODELS[llm], device_map="balanced"
+                ).eval()
+                if not not_load_model
+                else None
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
+            self.word2id = self.tokenizer.vocab
+            self.vocab = [
+                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
+            ]
+            self.UNK_ID = (
+                self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
+            )
+        elif llm == "llama70b":
+            device_map = {
+                'model.embed_tokens': 0,
+                'model.embed_dropout': 0,
+            }
+            for i in range(0, 3):
+                device_map[f'model.layers.{i}'] = 0
+            for i in range(3, 10):
+                device_map[f'model.layers.{i}'] = 1
+            for i in range(10, 28):
+                device_map[f'model.layers.{i}'] = 2
+            for i in range(28, 46):
+                device_map[f'model.layers.{i}'] = 3
+            for i in range(46, 64):
+                device_map[f'model.layers.{i}'] = 4
+            for i in range(62, 80):
+                device_map[f'model.layers.{i}'] = 5
+            # for i in range(0, 20):
+            #     device_map[f'model.layers.{i}'] = 2
+            # for i in range(20, 40):
+            #     device_map[f'model.layers.{i}'] = 3
+            # for i in range(40, 60):
+            #     device_map[f'model.layers.{i}'] = 4
+            # for i in range(60, 80):
+                # device_map[f'model.layers.{i}'] = 5
+            device_map['model.norm'] = 4
+            device_map['lm_head'] = 5
+            self.model = (
+                (
+                    LlamaForCausalLM.from_pretrained(config.MODELS[llm], device_map=device_map)#"auto")#, max_memory={0: "20GB", 1: "20GB", 2: "80GB", 3: "80GB", 4: "80GB", 5: "80GB"})
+                    .eval()
                 )
-            else:
-                self.model = (
-                    LlamaForCausalLM.from_pretrained(
-                        config.MODELS[llm], device_map="balanced"
-                    ).eval()
-                    if not not_load_model
-                    else None
-                )
+                if not not_load_model
+                else None
+            )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -83,7 +115,7 @@ class GPT:
             if "boole" in HOSTNAME:
                 self.model = (
                     AutoModelForCausalLM.from_pretrained(
-                        config.MODELS[llm], device_map="auto", max_memory={0: "5GB", 1: "5GB", 2: "49GB"}
+                        config.MODELS[llm], device_map="balanced"
                     ).eval()
                     if not not_load_model
                     else None
@@ -99,9 +131,7 @@ class GPT:
             else:
                 self.model = (
                     AutoModelForCausalLM.from_pretrained(
-                        # config.MODELS[llm], device_map="balanced"
-                        # config.MODELS[llm], device_map="auto", max_memory={0: "10GB", 1: "0GB", 2: "20GB", 3: "20GB"}
-                        config.MODELS[llm], device_map="auto", max_memory={0: "1GB", 1: "0GB", 2: "25GB", 3: "13GB"}, offload_folder="./"
+                        config.MODELS[llm], device_map="balanced"
                     ).eval()
                     if not not_load_model
                     else None
@@ -223,39 +253,46 @@ class GPT:
         )
         return torch.tensor(context_array).long()
 
-    def get_hidden(self, ids, layer):
+    def get_hidden(self, ids, layer, story=None):
         """get hidden layer representations"""
         mask = torch.ones(ids.shape).int()
-        if self.llm == "gpt":
-            store_outputs = []
-            for i in range(0, ids.shape[0], 512):
-                chunk_ids = ids[i : i + 512, :]
-                mask = torch.ones(chunk_ids.shape).int()
-                with torch.no_grad():
-                    outputs = self.model(
-                        input_ids=chunk_ids.to(self.device),
-                        attention_mask=mask.to(self.device),
-                        output_hidden_states=True,
-                    )
-                store_outputs.append(
-                    outputs.hidden_states[layer].detach().cpu().numpy()
-                )
-            return np.vstack(store_outputs)
+        if story is None:
+            outputs = self.model(
+                input_ids=ids.to(self.device),
+                attention_mask=mask.to(self.device),
+                output_hidden_states=True,
+            )
+            return outputs.hidden_states[layer].detach().cpu().numpy()
         else:
             with torch.no_grad():
-                if HOSTNAME == "riemann":
+                save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", self.llm).replace("Storage2", "home")
+                if self.llm in ["falcon", "llama70b", "llama3"]:
+                    os.makedirs(save_location, exist_ok=True)
+                if os.path.exists(os.path.join(save_location, story+"_layer"+str(layer)+".npy")):
+                    return np.load(os.path.join(save_location, story+"_layer"+str(layer)+".npy"))
+                result = [[] for _ in range(len(config.GPT_LAYERS[self.llm]))]
+                for i in range(ids.shape[0]-ids.shape[-1]+1):
+                    id = ids[i].reshape(1, -1)
                     outputs = self.model(
-                        input_ids=ids.to(self.device),
-                        attention_mask=mask.to(self.device),
+                        input_ids=id.to(self.device),
                         output_hidden_states=True,
                     )
-                else:
-                    outputs = self.model(
-                        input_ids=ids.to("cuda:0"),
-                        attention_mask=mask.to("cuda:1"),
-                        output_hidden_states=True,
-                    )
-            return outputs.hidden_states[layer].detach().cpu().numpy()
+                    for j in range(len(config.GPT_LAYERS[self.llm])):
+                        if i == 0:
+                            result[j] = outputs.hidden_states[config.GPT_LAYERS[self.llm][j]].detach().cpu().numpy()[0,:,:]
+                        else:
+                            output = outputs.hidden_states[config.GPT_LAYERS[self.llm][j]].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
+                            result[j] = np.concatenate([result[j], output])
+                            # output = outputs.hidden_states[layer].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
+                if self.llm in ["falcon", "llama70b", "llama3"]:
+                    for i in range(len(config.GPT_LAYERS[self.llm])):
+                        np.save(
+                            os.path.join(save_location, story+"_layer"+str(config.GPT_LAYERS[self.llm][i])),
+                            result[i]
+                        )
+                result = result[config.GPT_LAYERS[self.llm].index(layer)]
+            print(result.shape, "this must be (len_words, hidden).", story)
+            return result
 
     def get_probs(self, ids):
         """get next word probability distributions"""
@@ -270,7 +307,7 @@ class GPT:
         return probs
 
     def decode_misencoded_text(self, words):
-        if self.llm in ["llama3", "opt"]:
+        if self.llm in ["llama3", "opt", "llama70b"]:
             return [
                 w.replace("Ġ", " ")
                 .replace("âĢĻ", "'")

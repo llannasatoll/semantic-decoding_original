@@ -68,16 +68,15 @@ if __name__ == "__main__":
     else:
         gpt_checkpoint = "perceived"
     save_location = os.path.join(config.SCORE_DIR, args.subject, args.experiment)
-    if os.path.exists(os.path.join(save_location, args.task + "_" + args.llm) + ".npz"):
+    if os.path.exists(os.path.join(save_location, args.task + "_" + args.llm).replace("/home", "/Storage2") + ".npz"):
         print("EXIST!!!!")
         result = np.load(
-            os.path.join(save_location, args.task + "_" + args.llm) + ".npz"
+            os.path.join(save_location, args.task + "_" + args.llm).replace("/home", "/Storage2") + ".npz"
         )
         null_word_list = result["null_word_list"].tolist()
-        # prs_list = result["prs_list"].tolist()
     else:
-        null_word_list, prs_list = (
-            generate_null(pred_times, gpt_checkpoint, args.null, args.llm, args.subject)
+        null_word_list = (
+            generate_null(pred_times, gpt_checkpoint, args.null, args.llm)
             if args.null
             else [[]]
         )
@@ -149,7 +148,7 @@ if __name__ == "__main__":
                     [
                         metric.score(
                             ref=[
-                                config.MARK[args.llm].join(ref) for ref in ref_windows
+                                " ".join(ref) for ref in ref_windows
                             ],
                             pred=[
                                 config.MARK[args.llm].join(null)
@@ -160,11 +159,10 @@ if __name__ == "__main__":
                     ]
                 )
                 window_scores[(reference, mname)] = metric.score(
-                    ref=[config.MARK[args.llm].join(ref) for ref in ref_windows],
+                    ref=[" ".join(ref) for ref in ref_windows],
                     pred=[config.MARK[args.llm].join(pred) for pred in pred_windows],
                 )
             elif mname == "BLEU" and config.MARK[args.llm] == "":
-                ref_windows = ["".join(ref).split(" ") for ref in ref_windows]
                 window_null_scores[(reference, mname)] = np.array(
                     [
                         metric.score(
@@ -205,5 +203,4 @@ if __name__ == "__main__":
         window_null_scores=window_null_scores,
         story_null_scores=story_null_scores,
         null_word_list=np.array(null_word_list),
-        # prs_list=np.array(prs_list),
     )

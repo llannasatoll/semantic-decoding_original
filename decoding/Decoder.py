@@ -50,7 +50,6 @@ class Decoder(object):
 
     def extend(self, verbose=False):
         """update beam based on global extension pool"""
-        print("num candidate :", len(self.scored_extensions))
         self.beam = [
             x[0]
             for x in sorted(self.scored_extensions, key=lambda x: -x[1])[
@@ -58,10 +57,11 @@ class Decoder(object):
             ]
         ]
         self.prs_lst.append(max(self.scored_extensions, key=lambda x: x[1])[1])
-        self.scored_extensions = []
         if verbose:
+            print("num candidate :", len(self.scored_extensions))
             print("pr : ", self.prs_lst[-1])
             print(self.beam[0].words)
+        self.scored_extensions = []
 
     def save(self, path, gpt):
         """save decoder results"""

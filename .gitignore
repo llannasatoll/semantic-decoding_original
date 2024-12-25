@@ -9,3 +9,5 @@ pyproject.toml
 results
 scores
 *.pkl
+features
+*.sh

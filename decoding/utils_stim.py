@@ -23,15 +23,32 @@ def get_story_wordseqs(stories):
     return wordseqs
 
 
-def get_stim(stories, features, tr_stats=None):
+def get_stim(stories, features, tr_stats=None, use_embedding=False):
     """extract quantitative features of stimulus stories"""
     word_seqs = get_story_wordseqs(stories)
     word_vecs, wordind2tokind = {}, {}
     for story in stories:
-        word_vecs[story], wordind2tokind[story] = features.make_stim(
-            word_seqs[story].data,
-            story=story,
-        )
+        save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", features.model.llm).replace("Storage2", "home")
+        if use_embedding:
+            _, wordind2tokind[story] = features.make_stim(
+                word_seqs[story].data,
+                story=story,
+            )
+            context = 5
+            id_ = "embedding_" + "context" + str(context)
+            word_vecs[story] = np.load(os.path.join(config.DATA_TRAIN_DIR, 'train_stimulus', id_, "text-embedding-3-small", f"{story}.npy"))
+            word_vecs[story][context-1:] = word_vecs[story][:-context+1]
+        elif features.context_words < 0:
+            _, wordind2tokind[story] = features.make_stim(
+                word_seqs[story].data,
+                story=story,
+            )
+            word_vecs[story] = np.load(os.path.join(save_location, story+"_layer"+str(features.layer)+".npy"))
+        else:
+            word_vecs[story], wordind2tokind[story] = features.make_stim(
+                word_seqs[story].data,
+                story=story,
+            )
     word_mat = np.vstack([word_vecs[story] for story in stories])
     word_mean, word_std = word_mat.mean(0), word_mat.std(0)
 
@@ -52,7 +69,7 @@ def get_stim(stories, features, tr_stats=None):
     else:
         r_mean, r_std = tr_stats
     ds_mat = np.nan_to_num(np.dot((ds_mat - r_mean), np.linalg.inv(np.diag(r_std))))
-    if config.IS_PCA and features.model.llm in ["llama3", "opt"]:
+    if config.IS_PCA and features.model.llm in ["llama3", "opt", "llama70b", "falcon"]:
         if len(stories) > 1:
             pca.fit(ds_mat)
             pca_path = (
@@ -63,6 +80,13 @@ def get_stim(stories, features, tr_stats=None):
                 joblib.dump(pca, pca_path)
         ds_mat = pca.transform(ds_mat)
     del_mat = make_delayed(ds_mat, config.STIM_DELAYS)
+    # embeds = np.vstack([np.load(os.path.join(config.DATA_TRAIN_DIR, 'train_stimulus', 'embedding_-120to-1', "text-embedding-3-small", story)+'.npy') for story in stories])
+    # r_mean2, r_std2 = embeds.mean(0), embeds.std(0)
+    # print("CONCAT EMBEDDING")
+    # r_std2[r_std2 == 0] = 1
+    # embeds = np.nan_to_num(np.dot((embeds - r_mean2), np.linalg.inv(np.diag(r_std2))))
+    # # embeds[1:] = embeds[:-1]
+    # del_mat = np.concatenate((del_mat, embeds), axis=1)  # axis=1で列方向に結合
     if tr_stats is None:
         return del_mat, (r_mean, r_std), (word_mean, word_std)
     else:

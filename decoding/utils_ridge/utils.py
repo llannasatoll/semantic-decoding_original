@@ -104,9 +104,13 @@ def mult_diag(d, mtx, left=True):
     From http://mail.scipy.org/pipermail/numpy-discussion/2007-March/026807.html
     """
     if left:
-        return (d * mtx.T).T
+        return d[:, None] * mtx  # Broadcast d across rows (N, 1) * (N, N)
     else:
-        return d * mtx
+        return mtx * d[None, :]  # Broadcast d across columns (N, N) * (1, N)
+    # if left:
+    #     return (d * mtx.T).T
+    # else:
+    #     return d * mtx
 
 
 def counter(iterable, countevery=100, total=None, logger=logging.getLogger("counter")):

@@ -72,7 +72,7 @@ if __name__ == "__main__":
         weights, _, _ = bootstrap_ridge(
             delresp,
             rate,
-            use_corr=False,
+            use_gauss=False,
             alphas=config.ALPHAS,
             nboots=config.NBOOTS,
             chunklen=config.CHUNKLEN,
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(save_location, args.llm), exist_ok=True)
         np.savez(
             os.path.join(save_location, args.llm, "word_rate_model_%s" % roi),
-            weights=weights,
+            weights=weights.cpu().numpy(),
             mean_rate=mean_rate,
             voxels=vox[roi],
             llm=args.llm,

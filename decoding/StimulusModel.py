@@ -84,10 +84,6 @@ class StimulusModel:
                 torch.tensor(np.array(var_embs)).float().to(self.device)
             )
             tr_variants = self._normalize(self._downsample(variants))
-            pca_path = (
-                "/Storage2/anna/semantic-decoding_original/pca_model_%s.pkl"
-                % self.llm
-            )
             del_tr_variants = self._delay(
                 torch.tensor(tr_variants).float().to(self.device),
                 n_variants,
@@ -138,16 +134,6 @@ class LMFeatures:
                 )
         if self.context_words < 0:
             return None, wordind2tokind
-        embs = self.model.get_hidden(context_array, layer=self.layer)
-        return (
-            np.vstack(
-                [
-                    embs[0, : self.context_words],
-                    embs[
-                        : context_array.shape[0] - self.context_words,
-                        self.context_words,
-                    ],
-                ]
-            ),
-            wordind2tokind,
-        )
+        embs = self.model.get_hidden(context_array, layer=self.layer, story=story)
+        torch.cuda.empty_cache()
+        return embs, wordind2tokind

@@ -66,6 +66,14 @@ def windows(start_time, end_time, duration, step=1):
 
 """divide [data] into list of segments defined by [cutoffs]"""
 
+def find_split_index(segment, start, end, step, words):
+    blank_count = 0
+    for i in range(start, end, step):
+        if " " in segment[i]:
+            blank_count += 1
+        if blank_count == words:
+            return i
+    return end  # Fallback in case the loop doesn't break
 
 def segment_data(data, times, cutoffs):
     return [
@@ -73,6 +81,19 @@ def segment_data(data, times, cutoffs):
         for start, end in cutoffs
     ]
 
+# def segment_data(data, times, cutoffs):
+#     segments = [
+#         [x for c, x in zip(times, data) if c >= start and c < end]
+#         for start, end in cutoffs
+#     ]
+#     result = []
+#     words = 24
+#     for segment in segments:
+#         mid = len(segment) // 2
+#         start = find_split_index(segment, mid, 0, -1, words)
+#         end = find_split_index(segment, mid + 1, len(segment), 1, words)
+#         result.append(segment[start:end])
+#     return result
 
 def get_em_environ(llm, subject):
     # load responses
@@ -127,9 +148,7 @@ def get_em_environ(llm, subject):
 
 """generate null sequences with same times as predicted sequence"""
 
-
-def generate_null(pred_times, gpt_checkpoint, n, llm, subject):
-
+def generate_null(pred_times, gpt_checkpoint, n, llm):
     # load language model
     gpt = GPT(
         llm=llm,
@@ -139,28 +158,19 @@ def generate_null(pred_times, gpt_checkpoint, n, llm, subject):
     lm = LanguageModel(
         gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
     )
-    features = LMFeatures(
-        model=gpt, layer=config.GPT_LAYER[llm], context_words=config.GPT_WORDS
-    )
-    sm, em, lanczos_mat = get_em_environ(llm, subject)
     # generate null sequences
     null_words = []
-    prs_list = []
     for _count in range(n):
+        print(f"{_count}/{n}")
         decoder = Decoder(pred_times, 2 * config.EXTENSIONS)
         for sample_index in range(len(pred_times)):
-            trs = affected_trs(decoder.first_difference(), sample_index, lanczos_mat)
             ncontext = decoder.time_window(sample_index, config.LM_TIME, floor=5)
             beam_nucs = lm.beam_propose(decoder.beam, ncontext)
             for c, (hyp, nextensions) in enumerate(decoder.get_hypotheses()):
                 nuc, logprobs = beam_nucs[c]
                 if len(nuc) < 1:
                     continue
-                extend_words = [hyp.words + [x] for x in nuc]
-                extend_embs = list(features.extend(extend_words))
-                stim = sm.make_variants(sample_index, hyp.embs, extend_embs, trs)
-                likelihoods = em.prs(stim, trs)
-                # likelihoods = np.random.random(len(nuc))
+                likelihoods = np.random.random(len(nuc))
                 local_extensions = [
                     Hypothesis(parent=hyp, extension=x)
                     for x in zip(nuc, logprobs, [np.zeros(1) for _ in nuc])
@@ -168,8 +178,7 @@ def generate_null(pred_times, gpt_checkpoint, n, llm, subject):
                 decoder.add_extensions(local_extensions, likelihoods, nextensions)
             decoder.extend(verbose=False)
         null_words.append(decoder.beam[0].words)
-        prs_list.append(decoder.prs_lst)
-    return [gpt.decode_misencoded_text(null) for null in null_words], prs_list
+    return [gpt.decode_misencoded_text(null) for null in null_words]
 
 
 """
@@ -183,6 +192,8 @@ class WER(object):
 
     def score(self, ref, pred):
         scores = []
+        print(ref[:2])
+        print(pred[:2])
         for ref_seg, pred_seg in zip(ref, pred):
             if len(ref_seg) == 0:
                 error = 1.0
@@ -207,6 +218,8 @@ class BLEU(object):
 
     def score(self, ref, pred):
         results = []
+        print(ref[:2])
+        print(pred[:2])
         for r, p in zip(ref, pred):
             self.metric.add_batch(predictions=[p], references=[[r]])
             results.append(self.metric.compute(max_order=self.n)["bleu"])
@@ -225,8 +238,10 @@ class METEOR(object):
 
     def score(self, ref, pred):
         results = []
-        ref_strings = [self.mark.join(x) for x in ref]
+        ref_strings = [" ".join(x) for x in ref]
         pred_strings = [self.mark.join(x) for x in pred]
+        print(ref_strings[:2])
+        print(pred_strings[:2])
         for r, p in zip(ref_strings, pred_strings):
             self.metric.add_batch(predictions=[p], references=[r])
             results.append(self.metric.compute()["meteor"])
@@ -256,8 +271,12 @@ class BERTSCORE(object):
             self.score_id = 2
 
     def score(self, ref, pred):
-        ref_strings = [self.mark.join(x) for x in ref]
+        ref_strings = [" ".join(x) for x in ref]
         pred_strings = [self.mark.join(x) for x in pred]
+        print(ref_strings[:2])
+        print(pred_strings[:2])
+        # print([len(sent.split(" ")) for sent in ref_strings])
+        # print([len(sent.split(" ")) for sent in pred_strings])
         return self.metric.score(cands=pred_strings, refs=ref_strings)[
             self.score_id
         ].numpy()

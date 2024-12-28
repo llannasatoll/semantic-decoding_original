@@ -66,6 +66,7 @@ def windows(start_time, end_time, duration, step=1):
 
 """divide [data] into list of segments defined by [cutoffs]"""
 
+
 def find_split_index(segment, start, end, step, words):
     blank_count = 0
     for i in range(start, end, step):
@@ -75,11 +76,13 @@ def find_split_index(segment, start, end, step, words):
             return i
     return end  # Fallback in case the loop doesn't break
 
+
 def segment_data(data, times, cutoffs):
     return [
         [x for c, x in zip(times, data) if c >= start and c < end]
         for start, end in cutoffs
     ]
+
 
 # def segment_data(data, times, cutoffs):
 #     segments = [
@@ -94,6 +97,7 @@ def segment_data(data, times, cutoffs):
 #         end = find_split_index(segment, mid + 1, len(segment), 1, words)
 #         result.append(segment[start:end])
 #     return result
+
 
 def get_em_environ(llm, subject):
     # load responses
@@ -147,6 +151,7 @@ def get_em_environ(llm, subject):
 
 
 """generate null sequences with same times as predicted sequence"""
+
 
 def generate_null(pred_times, gpt_checkpoint, n, llm):
     # load language model

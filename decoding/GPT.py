@@ -54,21 +54,21 @@ class GPT:
             )
         elif llm == "llama70b":
             device_map = {
-                'model.embed_tokens': 0,
-                'model.embed_dropout': 0,
+                "model.embed_tokens": 0,
+                "model.embed_dropout": 0,
             }
             for i in range(0, 3):
-                device_map[f'model.layers.{i}'] = 0
+                device_map[f"model.layers.{i}"] = 0
             for i in range(3, 10):
-                device_map[f'model.layers.{i}'] = 1
+                device_map[f"model.layers.{i}"] = 1
             for i in range(10, 28):
-                device_map[f'model.layers.{i}'] = 2
+                device_map[f"model.layers.{i}"] = 2
             for i in range(28, 46):
-                device_map[f'model.layers.{i}'] = 3
+                device_map[f"model.layers.{i}"] = 3
             for i in range(46, 64):
-                device_map[f'model.layers.{i}'] = 4
+                device_map[f"model.layers.{i}"] = 4
             for i in range(62, 80):
-                device_map[f'model.layers.{i}'] = 5
+                device_map[f"model.layers.{i}"] = 5
             # for i in range(0, 20):
             #     device_map[f'model.layers.{i}'] = 2
             # for i in range(20, 40):
@@ -76,13 +76,14 @@ class GPT:
             # for i in range(40, 60):
             #     device_map[f'model.layers.{i}'] = 4
             # for i in range(60, 80):
-                # device_map[f'model.layers.{i}'] = 5
-            device_map['model.norm'] = 4
-            device_map['lm_head'] = 5
+            # device_map[f'model.layers.{i}'] = 5
+            device_map["model.norm"] = 4
+            device_map["lm_head"] = 5
             self.model = (
                 (
-                    LlamaForCausalLM.from_pretrained(config.MODELS[llm], device_map=device_map)#"auto")#, max_memory={0: "20GB", 1: "20GB", 2: "80GB", 3: "80GB", 4: "80GB", 5: "80GB"})
-                    .eval()
+                    LlamaForCausalLM.from_pretrained(
+                        config.MODELS[llm], device_map=device_map
+                    ).eval()  # "auto")#, max_memory={0: "20GB", 1: "20GB", 2: "80GB", 3: "80GB", 4: "80GB", 5: "80GB"})
                 )
                 if not not_load_model
                 else None
@@ -265,13 +266,23 @@ class GPT:
             return outputs.hidden_states[layer].detach().cpu().numpy()
         else:
             with torch.no_grad():
-                save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", self.llm)
+                save_location = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "features",
+                    self.llm,
+                )
                 if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
                     os.makedirs(save_location, exist_ok=True)
-                if os.path.exists(os.path.join(save_location, story+"_layer"+str(layer)+".npy")):
-                    return np.load(os.path.join(save_location, story+"_layer"+str(layer)+".npy"))
+                if os.path.exists(
+                    os.path.join(save_location, story + "_layer" + str(layer) + ".npy")
+                ):
+                    return np.load(
+                        os.path.join(
+                            save_location, story + "_layer" + str(layer) + ".npy"
+                        )
+                    )
                 result = [[] for _ in range(len(config.GPT_LAYERS[self.llm]))]
-                for i in range(ids.shape[0]-ids.shape[-1]+1):
+                for i in range(ids.shape[0] - ids.shape[-1] + 1):
                     id = ids[i].reshape(1, -1)
                     outputs = self.model(
                         input_ids=id.to(self.device),
@@ -279,16 +290,30 @@ class GPT:
                     )
                     for j in range(len(config.GPT_LAYERS[self.llm])):
                         if i == 0:
-                            result[j] = outputs.hidden_states[config.GPT_LAYERS[self.llm][j]].detach().cpu().numpy()[0,:,:]
+                            result[j] = (
+                                outputs.hidden_states[config.GPT_LAYERS[self.llm][j]]
+                                .detach()
+                                .cpu()
+                                .numpy()[0, :, :]
+                            )
                         else:
-                            output = outputs.hidden_states[config.GPT_LAYERS[self.llm][j]].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
+                            output = (
+                                outputs.hidden_states[config.GPT_LAYERS[self.llm][j]]
+                                .detach()
+                                .cpu()
+                                .numpy()[0, -1, :]
+                                .reshape(1, -1)
+                            )
                             result[j] = np.concatenate([result[j], output])
                             # output = outputs.hidden_states[layer].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
                 if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
                     for i in range(len(config.GPT_LAYERS[self.llm])):
                         np.save(
-                            os.path.join(save_location, story+"_layer"+str(config.GPT_LAYERS[self.llm][i])),
-                            result[i]
+                            os.path.join(
+                                save_location,
+                                story + "_layer" + str(config.GPT_LAYERS[self.llm][i]),
+                            ),
+                            result[i],
                         )
                 result = result[config.GPT_LAYERS[self.llm].index(layer)]
             print(result.shape, "this must be (len_words, hidden).", story)

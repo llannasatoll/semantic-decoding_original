@@ -11,6 +11,7 @@ import config
 zs = lambda v: (v - v.mean(0)) / v.std(0)  ## z-score function
 USE_CPU = False
 
+
 def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
     """Uses ridge regression to find a linear transformation of [stim] that approximates
     [resp]. The regularization parameter is [alpha].
@@ -44,7 +45,7 @@ def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
         S = torch.tensor(S, device=config.EM_DEVICE)
         Vh = torch.tensor(Vh, device=config.EM_DEVICE)
 
-    UR = torch.matmul(U.T,  torch.nan_to_num(resp))
+    UR = torch.matmul(U.T, torch.nan_to_num(resp))
     del U
     torch.cuda.empty_cache()
     # Expand alpha to a collection if it's just a single value
@@ -62,10 +63,10 @@ def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
     ualphas = torch.unique(nalphas)
     wt = torch.zeros((stim.shape[1], resp.shape[1]), device=config.EM_DEVICE)
     for ua in ualphas:
-            selvox = torch.nonzero(nalphas == ua).squeeze(1)
-            diag_S = torch.diag(S / (S**2 + ua**2))
-            awt = torch.matmul(torch.matmul(Vh.T, diag_S), UR[:, selvox]).to(wt.dtype)
-            wt[:, selvox] = awt
+        selvox = torch.nonzero(nalphas == ua).squeeze(1)
+        diag_S = torch.diag(S / (S**2 + ua**2))
+        awt = torch.matmul(torch.matmul(Vh.T, diag_S), UR[:, selvox]).to(wt.dtype)
+        wt[:, selvox] = awt
 
     return wt
 
@@ -164,7 +165,6 @@ def ridge_corr(
         nalphas = alphas * frob
     else:
         nalphas = alphas
-
 
     ## Precompute some products for speed
     Rresp = torch.tensor(Rresp, device=config.EM_DEVICE)
@@ -418,6 +418,7 @@ def bootstrap_ridge(
         return None, None, None
 
     import time
+
     np.save(f"./tmp_{int(time.time())}", valphas)
     valphas = torch.tensor(valphas, device=config.EM_DEVICE)
     logger.info("Computing weights for each response using entire training set..")
@@ -427,7 +428,9 @@ def bootstrap_ridge(
     wt = torch.zeros((dim_features, nvox))
     for ai, alpha in enumerate(nalphas):
         selvox = torch.nonzero(valphas == alpha).squeeze(1)
-        awt = torch.matmul(torch.matmul(Vh.T, torch.diag(S / (S**2 + alpha**2))), UR[:, selvox])
+        awt = torch.matmul(
+            torch.matmul(Vh.T, torch.diag(S / (S**2 + alpha**2))), UR[:, selvox]
+        )
         wt[:, selvox.cpu()] = awt.cpu().to(wt.dtype)
         torch.cuda.empty_cache()
 

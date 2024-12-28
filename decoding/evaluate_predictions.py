@@ -112,16 +112,20 @@ if __name__ == "__main__":
             ]:
                 replace = " " if c == "\n" else ""
                 pred_words = [
-                    p.number_to_words(int(word))
-                    if word.isdecimal()
-                    else word.lower().replace(c, replace)
+                    (
+                        p.number_to_words(int(word))
+                        if word.isdecimal()
+                        else word.lower().replace(c, replace)
+                    )
                     for word in pred_words
                 ]
                 null_word_list = [
                     [
-                        p.number_to_words(int(word))
-                        if word.isdecimal()
-                        else word.lower().replace(c, replace)
+                        (
+                            p.number_to_words(int(word))
+                            if word.isdecimal()
+                            else word.lower().replace(c, replace)
+                        )
                         for word in null_words
                     ]
                     for null_words in null_word_list
@@ -130,10 +134,10 @@ if __name__ == "__main__":
             rpl_lst = ["n't ", "'d ", "'ll ", "'s ", "'re ", "'m ", "'ve "]
             for i in range(len(pred_words)):
                 if pred_words[i] in rpl_lst:
-                    pred_words[i-1] = pred_words[i-1][:-1]
+                    pred_words[i - 1] = pred_words[i - 1][:-1]
                 for null_words in null_word_list:
                     if null_words[i] in rpl_lst:
-                        null_words[i-1] = null_words[i-1][:-1]
+                        null_words[i - 1] = null_words[i - 1][:-1]
         # segment prediction and reference words into windows
         window_cutoffs = windows(*eval_segments[args.task], config.WINDOW)
         ref_windows = segment_data(ref_words, ref_times, window_cutoffs)
@@ -148,9 +152,7 @@ if __name__ == "__main__":
                 window_null_scores[(reference, mname)] = np.array(
                     [
                         metric.score(
-                            ref=[
-                                " ".join(ref) for ref in ref_windows
-                            ],
+                            ref=[" ".join(ref) for ref in ref_windows],
                             pred=[
                                 config.MARK[args.llm].join(null)
                                 for null in null_windows
@@ -169,7 +171,10 @@ if __name__ == "__main__":
                         metric.score(
                             ref=ref_windows,
                             # pred=[w for w in ["".join(null).split(" ") for null in null_windows] if w != ""],
-                            pred = [[w for w in "".join(null).split(" ") if w.strip()] for null in null_windows]
+                            pred=[
+                                [w for w in "".join(null).split(" ") if w.strip()]
+                                for null in null_windows
+                            ],
                         )
                         for null_windows in null_window_list
                     ]
@@ -177,7 +182,10 @@ if __name__ == "__main__":
                 window_scores[(reference, mname)] = metric.score(
                     ref=ref_windows,
                     # pred=[w for w in ["".join(pred).split(" ") for pred in pred_windows] if w != ""],
-                    pred = [[w for w in "".join(pred).split(" ") if w.strip()] for pred in pred_windows]
+                    pred=[
+                        [w for w in "".join(pred).split(" ") if w.strip()]
+                        for pred in pred_windows
+                    ],
                 )
             else:
                 window_null_scores[(reference, mname)] = np.array(

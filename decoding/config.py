@@ -10,11 +10,11 @@ DATA_TRAIN_DIR = os.path.join(REPO_DIR, "data_train")
 DATA_TEST_DIR = os.path.join(REPO_DIR, "data_test")
 MODEL_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models"
-)#.replace("Storage2", "home")
+)  # .replace("Storage2", "home")
 print("MODEL_DIR :", MODEL_DIR)
 RESULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
-)#.replace("Storage2", "home")
+)  # .replace("Storage2", "home")
 SCORE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scores"
 ).replace("Storage2", "home")
@@ -28,8 +28,24 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = {"original": 9, "llama3": 13, "llama3.1": 14, "gpt": 10, "opt": 22, "llama70b": 33, "falcon": 17}
-GPT_LAYERS = {"original": [9], "llama3": [13], "llama3.1": list(range(4,20)), "gpt": list(range(1,13)), "llama70b": [25,29,33,37], "falcon7b": list(range(4,20)), "falcon": list(range(1,61,4))}
+GPT_LAYER = {
+    "original": 9,
+    "llama3": 13,
+    "llama3.1": 14,
+    "gpt": 10,
+    "opt": 22,
+    "llama70b": 33,
+    "falcon": 17,
+}
+GPT_LAYERS = {
+    "original": [9],
+    "llama3": [13],
+    "llama3.1": list(range(4, 20)),
+    "gpt": list(range(1, 13)),
+    "llama70b": [25, 29, 33, 37],
+    "falcon7b": list(range(4, 20)),
+    "falcon": list(range(1, 61, 4)),
+}
 GPT_WORDS = 5
 IS_PCA = False
 print("IS_PCA :", IS_PCA)

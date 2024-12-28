@@ -71,7 +71,9 @@ if __name__ == "__main__":
     for sess in args.sessions:
         stories.extend(sess_to_story[str(sess)])
 
-    layers = config.GPT_LAYERS[args.llm] if args.notsave else [config.GPT_LAYER[args.llm]]
+    layers = (
+        config.GPT_LAYERS[args.llm] if args.notsave else [config.GPT_LAYER[args.llm]]
+    )
     # if args.notsave:
     #     # Calculate correlation using test story.
     #     with h5py.File(
@@ -86,8 +88,16 @@ if __name__ == "__main__":
     #     ) as hf:
     #         resp = np.nan_to_num(hf["data"][:])
     #     layers = [config.GPT_LAYERS[args.llm]]
-    if args.use_embedding or os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", args.llm)):
-        gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt, not_load_model=True)
+    if args.use_embedding or os.path.exists(
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "features",
+            args.llm,
+        )
+    ):
+        gpt = GPT(
+            llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt, not_load_model=True
+        )
         context_words = -1
     else:
         gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt)
@@ -103,7 +113,9 @@ if __name__ == "__main__":
         )
 
         # estimate encoding model
-        rstim, tr_stats, word_stats = get_stim(stories, features, use_embedding=args.use_embedding)
+        rstim, tr_stats, word_stats = get_stim(
+            stories, features, use_embedding=args.use_embedding
+        )
         nchunks = int(np.ceil(rresp.shape[0] / 5 / config.CHUNKLEN))
         weights, alphas, bscorrs = bootstrap_ridge(
             rstim,
@@ -114,7 +126,7 @@ if __name__ == "__main__":
             chunklen=config.CHUNKLEN,
             nchunks=nchunks,
             logger=logger,
-            notsave=args.notsave
+            notsave=args.notsave,
         )
         if not args.notsave:
             bscorrs = bscorrs.mean(2).max(0)
@@ -164,7 +176,9 @@ if __name__ == "__main__":
         bs_weights = ridge(tstim, tresp, alphas[vox]).float()
         resids = hresp - hstim.matmul(bs_weights)
         bs_noise_model = resids.T.matmul(resids)
-        noise_model += bs_noise_model / torch.diagonal(bs_noise_model).mean() / len(stories)
+        noise_model += (
+            bs_noise_model / torch.diagonal(bs_noise_model).mean() / len(stories)
+        )
         del bs_weights, hresp, hstim, resids, bs_noise_model
         torch.cuda.empty_cache()
     del stim_dict, resp_dict

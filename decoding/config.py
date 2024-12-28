@@ -28,11 +28,10 @@ ALPHAS = np.logspace(1, 3, 10)
 NBOOTS = 50
 VOXELS = 10000
 CHUNKLEN = 40
-GPT_LAYER = {"original": 9, "llama3": 13, "gpt": 10, "opt": 22, "llama70b": 33, "falcon": 17}
-GPT_LAYERS = {"original": [9],"llama3": [13],  "gpt": list(range(1,13)), "llama70b": list(range(1,81,4)), "falcon": list(range(1,61,4))}
-GPT_LAYERS = {"original": [9], "llama3": [13], "gpt": list(range(1,13)), "llama70b": [25,29,33,37], "falcon": list(range(1,61,4))}
+GPT_LAYER = {"original": 9, "llama3": 13, "llama3.1": 14, "gpt": 10, "opt": 22, "llama70b": 33, "falcon": 17}
+GPT_LAYERS = {"original": [9], "llama3": [13], "llama3.1": list(range(4,20)), "gpt": list(range(1,13)), "llama70b": [25,29,33,37], "falcon7b": list(range(4,20)), "falcon": list(range(1,61,4))}
 GPT_WORDS = 5
-IS_PCA = True
+IS_PCA = False
 print("IS_PCA :", IS_PCA)
 
 # decoder parameters
@@ -59,15 +58,18 @@ gpt = "perceived"
 MODELS = {
     "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
     "llama3": "meta-llama/Meta-Llama-3-8B",
+    "llama3.1": "meta-llama/Llama-3.1-8B",
     "opt": "facebook/opt-6.7b",
     "gpt": "openai-community/openai-gpt",
     "llama70b": "meta-llama/Llama-3.1-70B",
     "falcon": "tiiuae/falcon-40b",
+    "falcon7b": "tiiuae/falcon-7b",
 }
 
 MARK = {
     "original": " ",
     "llama3": "",
+    "llama3.1": "",
     "opt": "",
     "gpt": "",
     "llama70b": "",

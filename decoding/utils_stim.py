@@ -28,7 +28,7 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
     word_seqs = get_story_wordseqs(stories)
     word_vecs, wordind2tokind = {}, {}
     for story in stories:
-        save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", features.model.llm).replace("Storage2", "home")
+        save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", features.model.llm)
         if use_embedding:
             _, wordind2tokind[story] = features.make_stim(
                 word_seqs[story].data,
@@ -69,7 +69,7 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
     else:
         r_mean, r_std = tr_stats
     ds_mat = np.nan_to_num(np.dot((ds_mat - r_mean), np.linalg.inv(np.diag(r_std))))
-    if config.IS_PCA and features.model.llm in ["llama3", "opt", "llama70b", "falcon"]:
+    if config.IS_PCA and features.model.llm in ["llama3", "llama3.1", "opt", "llama70b", "falcon", "falcon7b"]:
         if len(stories) > 1:
             pca.fit(ds_mat)
             pca_path = (

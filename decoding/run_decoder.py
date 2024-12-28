@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--llm", type=str, required=True)
     parser.add_argument("--experiment", type=str, default="perceived_speech")
     parser.add_argument("--task", type=str, default="wheretheressmoke")
+    parser.add_argument("--prompt", action="store_true")
     args = parser.parse_args()
 
     # determine GPT checkpoint based on experiment
@@ -67,7 +68,11 @@ if __name__ == "__main__":
         model=gpt, layer=config.GPT_LAYER[args.llm], context_words=config.GPT_WORDS
     )
     lm = LanguageModel(
-        gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
+        gpt,
+        gpt.vocab,
+        prompt=args.prompt,
+        nuc_mass=config.LM_MASS,
+        nuc_ratio=config.LM_RATIO,
     )
 
     weights = encoding_model["weights"]
@@ -125,4 +130,8 @@ if __name__ == "__main__":
         decoder.word_times += 10
     save_location = os.path.join(config.RESULT_DIR, args.subject, args.experiment)
     os.makedirs(save_location, exist_ok=True)
-    decoder.save(os.path.join(save_location, args.task + "_" + args.llm), gpt)
+    decoder.save(
+        os.path.join(save_location, args.task + "_" + args.llm)
+        + ("_prompt" if args.prompt else ""),
+        gpt,
+    )

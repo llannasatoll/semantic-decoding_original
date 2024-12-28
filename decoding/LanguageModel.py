@@ -239,8 +239,9 @@ def context_filter(proposals, context):
 class LanguageModel:
     """class for generating word sequences using a language model"""
 
-    def __init__(self, model, vocab, nuc_mass=1.0, nuc_ratio=0.0):
+    def __init__(self, model, vocab, prompt, nuc_mass=1.0, nuc_ratio=0.0):
         self.model = model
+        self.has_prompt = prompt
         vocab = set(vocab)
         self.ids = {i for word, i in self.model.word2id.items() if word in vocab}
         self.nuc_mass, self.nuc_ratio = nuc_mass, nuc_ratio
@@ -254,16 +255,17 @@ class LanguageModel:
     def beam_propose(self, beam, context_words):
         """get possible extension words for each hypothesis in the decoder beam"""
         if len(beam) == 1:
-            nuc_words = [
-                w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
-            ]
+            # nuc_words = [
+            #     w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
+            # ]
+            nuc_words = ["" for _ in range()]
             nuc_logprobs = np.log(np.ones(len(nuc_words)) / len(nuc_words))
             return [(nuc_words, nuc_logprobs)]
         else:
-            if len(beam[0].words) < context_words:
+            if (len(beam[0].words) < 100) and self.has_prompt:
                 contexts = [PROMPT[self.model.llm] + hyp.words for hyp in beam]
             else:
-                contexts = [hyp.words[-context_words:] for hyp in beam]
+                contexts = [hyp.words[-100:] for hyp in beam]
 
             beam_probs = self.ps(contexts)
             beam_nucs = []

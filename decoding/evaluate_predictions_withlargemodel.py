@@ -109,18 +109,13 @@ if __name__ == "__main__":
                     for null_words in null_word_list
                 ]
         if args.format and (args.llm == "gpt"):
-            for c in ["n't", "'d", "'ll", "'s", "'re"]:
-                pred_words = [
-                    word.replace(" "+c, c)
-                    for word in pred_words
-                ]
-                null_word_list = [
-                    [
-                        word.replace(" "+c, c)
-                        for word in null_words
-                    ]
-                    for null_words in null_word_list
-                ]
+            rpl_lst = ["n't ", "'d ", "'ll ", "'s ", "'re ", "'m ", "'ve "]
+            for i in range(len(pred_words)):
+                if pred_words[i] in rpl_lst:
+                    pred_words[i-1] = pred_words[i-1][:-1]
+                for null_words in null_word_list:
+                    if null_words[i] in rpl_lst:
+                        null_words[i-1] = null_words[i-1][:-1]
         # segment prediction and reference words into windows
         window_cutoffs = windows(*eval_segments[args.task], config.WINDOW)
         ref_windows = segment_data(ref_words, ref_times, window_cutoffs)

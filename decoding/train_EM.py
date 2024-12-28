@@ -86,7 +86,7 @@ if __name__ == "__main__":
     #     ) as hf:
     #         resp = np.nan_to_num(hf["data"][:])
     #     layers = [config.GPT_LAYERS[args.llm]]
-    if args.use_embedding or os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", args.llm).replace("Storage2", "home")):
+    if args.use_embedding or os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", args.llm)):
         gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt, not_load_model=True)
         context_words = -1
     else:

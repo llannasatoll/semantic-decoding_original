@@ -68,10 +68,10 @@ if __name__ == "__main__":
     else:
         gpt_checkpoint = "perceived"
     save_location = os.path.join(config.SCORE_DIR, args.subject, args.experiment)
-    if os.path.exists(os.path.join(save_location, args.task + "_" + args.llm).replace("/home", "/Storage2") + ".npz"):
+    if os.path.exists(os.path.join(save_location, args.task + "_" + args.llm) + ".npz"):
         print("EXIST!!!!")
         result = np.load(
-            os.path.join(save_location, args.task + "_" + args.llm).replace("/home", "/Storage2") + ".npz"
+            os.path.join(save_location, args.task + "_" + args.llm) + ".npz"
         )
         null_word_list = result["null_word_list"].tolist()
     else:
@@ -127,12 +127,13 @@ if __name__ == "__main__":
                     for null_words in null_word_list
                 ]
         if args.format and (args.llm == "gpt"):
-            for c in ["n't", "'d", "'ll", "'s", "'re"]:
-                pred_words = [word.replace(" " + c, c) for word in pred_words]
-                null_word_list = [
-                    [word.replace(" " + c, c) for word in null_words]
-                    for null_words in null_word_list
-                ]
+            rpl_lst = ["n't ", "'d ", "'ll ", "'s ", "'re ", "'m ", "'ve "]
+            for i in range(len(pred_words)):
+                if pred_words[i] in rpl_lst:
+                    pred_words[i-1] = pred_words[i-1][:-1]
+                for null_words in null_word_list:
+                    if null_words[i] in rpl_lst:
+                        null_words[i-1] = null_words[i-1][:-1]
         # segment prediction and reference words into windows
         window_cutoffs = windows(*eval_segments[args.task], config.WINDOW)
         ref_windows = segment_data(ref_words, ref_times, window_cutoffs)
@@ -167,14 +168,16 @@ if __name__ == "__main__":
                     [
                         metric.score(
                             ref=ref_windows,
-                            pred=["".join(null).split(" ") for null in null_windows],
+                            # pred=[w for w in ["".join(null).split(" ") for null in null_windows] if w != ""],
+                            pred = [[w for w in "".join(null).split(" ") if w.strip()] for null in null_windows]
                         )
                         for null_windows in null_window_list
                     ]
                 )
                 window_scores[(reference, mname)] = metric.score(
                     ref=ref_windows,
-                    pred=["".join(pred).split(" ") for pred in pred_windows],
+                    # pred=[w for w in ["".join(pred).split(" ") for pred in pred_windows] if w != ""],
+                    pred = [[w for w in "".join(pred).split(" ") if w.strip()] for pred in pred_windows]
                 )
             else:
                 window_null_scores[(reference, mname)] = np.array(

@@ -9,7 +9,7 @@ import itertools as itools
 import config
 
 zs = lambda v: (v - v.mean(0)) / v.std(0)  ## z-score function
-
+USE_CPU = False
 
 def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
     """Uses ridge regression to find a linear transformation of [stim] that approximates
@@ -35,6 +35,8 @@ def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
     resp = torch.tensor(resp, device=config.EM_DEVICE)
 
     try:
+        if USE_CPU:
+            raise torch._C._LinAlgError
         U, S, Vh = torch.linalg.svd(stim, full_matrices=False)
     except torch._C._LinAlgError as e:
         U, S, Vh = np.linalg.svd(stim.cpu().numpy(), full_matrices=False)
@@ -130,15 +132,18 @@ def ridge_corr(
     ## Calculate SVD of stimulus matrix
     logger.debug("Doing SVD...")
     try:
+        if USE_CPU:
+            raise torch._C._LinAlgError
         Rstim = torch.tensor(Rstim, device=config.EM_DEVICE)
         U, S, Vh = torch.linalg.svd(Rstim, full_matrices=False)
         del Rstim
         torch.cuda.empty_cache()
-    except np.linalg.LinAlgError as e:
+    except torch._C._LinAlgError as e:
         logger.debug("NORMAL SVD FAILED, trying more robust dgesvd..")
-        from text.regression.svd_dgesvd import svd_dgesvd
-
-        U, S, Vh = svd_dgesvd(Rstim, full_matrices=False)
+        U, S, Vh = np.linalg.svd(Rstim, full_matrices=False)
+        U = torch.tensor(U, device=config.EM_DEVICE)
+        S = torch.tensor(S, device=config.EM_DEVICE)
+        Vh = torch.tensor(Vh, device=config.EM_DEVICE)
 
     ## Truncate tiny singular values for speed
     origsize = S.shape[0]
@@ -359,6 +364,8 @@ def bootstrap_ridge(
     Rresp = torch.tensor(Rresp, device=config.EM_DEVICE)
     ## Find weights for each voxel
     try:
+        if USE_CPU:
+            raise torch._C._LinAlgError
         U, S, Vh = torch.linalg.svd(Rstim, full_matrices=False)
     # except np.linalg.LinAlgError as e:
     except torch._C._LinAlgError as e:

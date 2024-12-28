@@ -36,7 +36,7 @@ class GPT:
                 self.vocab = json.load(f)
             self.word2id = {w: i for i, w in enumerate(self.vocab)}
             self.UNK_ID = self.word2id["<unk>"]
-        elif llm == "llama3":
+        elif "llama3" in llm:
             self.model = (
                 LlamaForCausalLM.from_pretrained(
                     config.MODELS[llm], device_map="balanced"
@@ -265,8 +265,8 @@ class GPT:
             return outputs.hidden_states[layer].detach().cpu().numpy()
         else:
             with torch.no_grad():
-                save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", self.llm).replace("Storage2", "home")
-                if self.llm in ["falcon", "llama70b", "llama3"]:
+                save_location = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "features", self.llm)
+                if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
                     os.makedirs(save_location, exist_ok=True)
                 if os.path.exists(os.path.join(save_location, story+"_layer"+str(layer)+".npy")):
                     return np.load(os.path.join(save_location, story+"_layer"+str(layer)+".npy"))
@@ -284,7 +284,7 @@ class GPT:
                             output = outputs.hidden_states[config.GPT_LAYERS[self.llm][j]].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
                             result[j] = np.concatenate([result[j], output])
                             # output = outputs.hidden_states[layer].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
-                if self.llm in ["falcon", "llama70b", "llama3"]:
+                if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
                     for i in range(len(config.GPT_LAYERS[self.llm])):
                         np.save(
                             os.path.join(save_location, story+"_layer"+str(config.GPT_LAYERS[self.llm][i])),
@@ -307,7 +307,7 @@ class GPT:
         return probs
 
     def decode_misencoded_text(self, words):
-        if self.llm in ["llama3", "opt", "llama70b"]:
+        if self.llm in ["llama3", "llama3.1", "opt", "llama70b"]:
             return [
                 w.replace("Ġ", " ")
                 .replace("âĢĻ", "'")

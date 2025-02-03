@@ -39,8 +39,13 @@ class GPT:
         elif "llama3" in llm:
             self.model = (
                 LlamaForCausalLM.from_pretrained(
-                    config.MODELS[llm], device_map="balanced"
+                    config.MODELS[llm], device_map="auto"
                 ).eval()
+                # LlamaForCausalLM.from_pretrained(
+                #     config.MODELS[llm],
+                #     device_map="auto",
+                #     max_memory={0: "40GB", 1: "80GB"},
+                # ).eval()
                 if not not_load_model
                 else None
             )
@@ -54,20 +59,22 @@ class GPT:
             )
         elif llm == "llama70b":
             device_map = {
-                "model.embed_tokens": 0,
-                "model.embed_dropout": 0,
+                "model.embed_tokens": 1,
+                "model.embed_dropout": 1,
             }
-            for i in range(0, 3):
+            # for i in range(0, 4):
+            #     device_map[f"model.layers.{i}"] = 0
+            for i in range(0, 2):
                 device_map[f"model.layers.{i}"] = 0
-            for i in range(3, 10):
+            for i in range(2, 18):
                 device_map[f"model.layers.{i}"] = 1
-            for i in range(10, 28):
+            for i in range(18, 34):
                 device_map[f"model.layers.{i}"] = 2
-            for i in range(28, 46):
+            for i in range(34, 50):
                 device_map[f"model.layers.{i}"] = 3
-            for i in range(46, 64):
+            for i in range(50, 65):
                 device_map[f"model.layers.{i}"] = 4
-            for i in range(62, 80):
+            for i in range(65, 80):
                 device_map[f"model.layers.{i}"] = 5
             # for i in range(0, 20):
             #     device_map[f'model.layers.{i}'] = 2
@@ -88,6 +95,16 @@ class GPT:
                 if not not_load_model
                 else None
             )
+            # self.model = (
+            #     (
+            #         LlamaForCausalLM.from_pretrained(
+            #             config.MODELS[llm], device_map="auto"
+            #         ).eval()
+            #     )
+            #     if not not_load_model
+            #     else None
+            # )
+
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -270,7 +287,7 @@ class GPT:
                     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "features",
                     self.llm,
-                )
+                ).replace("Storage2", config.WRITE_DIR)
                 if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
                     os.makedirs(save_location, exist_ok=True)
                 if os.path.exists(

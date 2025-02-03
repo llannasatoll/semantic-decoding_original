@@ -1,7 +1,11 @@
 import os
 import numpy as np
+import socket
+
+HOSTNAME = socket.gethostname()
 
 # paths
+WRITE_DIR = "home" if HOSTNAME == "c47fd80fcaac" else "Storage2"
 
 # REPO_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPO_DIR = os.path.join("/Storage2", "anna", "semantic-decoding")
@@ -14,7 +18,7 @@ MODEL_DIR = os.path.join(
 print("MODEL_DIR :", MODEL_DIR)
 RESULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
-)  # .replace("Storage2", "home")
+).replace("Storage2", "home")
 SCORE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scores"
 ).replace("Storage2", "home")
@@ -75,6 +79,8 @@ MODELS = {
     "original": lambda gpt: os.path.join(DATA_LM_DIR, gpt, "model"),
     "llama3": "meta-llama/Meta-Llama-3-8B",
     "llama3.1": "meta-llama/Llama-3.1-8B",
+    "llama1b": "meta-llama/Llama-3.2-1B",
+    "llama3b": "meta-llama/Llama-3.2-1B",
     "opt": "facebook/opt-6.7b",
     "gpt": "openai-community/openai-gpt",
     "llama70b": "meta-llama/Llama-3.1-70B",
@@ -86,6 +92,8 @@ MARK = {
     "original": " ",
     "llama3": "",
     "llama3.1": "",
+    "llama1b": "",
+    "llama3b": "",
     "opt": "",
     "gpt": "",
     "llama70b": "",

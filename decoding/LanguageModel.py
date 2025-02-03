@@ -10,73 +10,124 @@ INIT = {
     "opt": ["I", "We", "She", "He", "They", "It"],
     "gpt": ["i</w>", "we</w>", "she</w>", "he</w>", "they</w>", "it</w>"],
 }
+INIT = {
+    "original": "",
+    "gpt": ".</w>",
+    "llama3": "<|begin_of_text|>",
+    "llama3.1": "<|begin_of_text|>",
+    "llama70b": "<|begin_of_text|>",
+    "opt": "</s>",
+}
 
+_speech_prompt_llama = [
+    "<|begin_of_text|>",
+    "I",
+    "'ll",
+    "Ġdescribe",
+    "Ġthe",
+    "Ġscene",
+    "Ġfrom",
+    "Ġthe",
+    "Ġstory",
+    "ĠI",
+    "'m",
+    "Ġcurrently",
+    "Ġhearingg",
+    ".",
+]
+_movie_prompt_llama = [
+    "<|begin_of_text|>",
+    "I",
+    "'ll",
+    "Ġdescribe",
+    "Ġthe",
+    "Ġscene",
+    "Ġfrom",
+    "Ġthe",
+    "Ġmovie",
+    "ĠI",
+    "'m",
+    "Ġcurrently",
+    "Ġwatching",
+    ".",
+]
 PROMPT = {
-    "llama3": [
-        "<|begin_of_text|>",
-        "I",
-        "'ll",
-        "Ġbriefly",
-        "Ġdescribe",
-        "Ġthe",
-        "Ġscene",
-        "Ġfrom",
-        "Ġthe",
-        "Ġmovie",
-        "ĠI",
-        "'m",
-        "Ġcurrently",
-        "Ġwatching",
-        ".",
-    ],
-    "llama70b": [
-        "<|begin_of_text|>",
-        "I",
-        "'ll",
-        "Ġbriefly",
-        "Ġdescribe",
-        "Ġthe",
-        "Ġscene",
-        "Ġfrom",
-        "Ġthe",
-        "Ġmovie",
-        "ĠI",
-        "'m",
-        "Ġcurrently",
-        "Ġwatching",
-        ".",
-    ],
-    "opt": [
-        "</s>",
-        "I",
-        "'ll",
-        "Ġbriefly",
-        "Ġdescribe",
-        "Ġthe",
-        "Ġscene",
-        "Ġfrom",
-        "Ġthe",
-        "Ġmovie",
-        "ĠI",
-        "'m",
-        "Ġcurrently",
-        "Ġwatching",
-        ".",
-    ],
-    "original": [
-        "i'll</w>",
-        "briefly</w>",
-        "describe</w>",
-        "the</w>",
-        "scene</w>",
-        "from</w>",
-        "the</w>",
-        "movie</w>",
-        "i'm</w>",
-        "currently</w>",
-        "watching</w>",
-        ".",
-    ],
+    "perceived_speech": {
+        "llama3": _speech_prompt_llama,
+        "llama3.1": _speech_prompt_llama,
+        "llama70b": _speech_prompt_llama,
+        "gpt": [
+            "i'll</w>",
+            "describe</w>",
+            "the</w>",
+            "scene</w>",
+            "from</w>",
+            "the</w>",
+            "story</w>",
+            "i'm</w>",
+            "currently</w>",
+            "hearing</w>",
+            ".</w>",
+        ],
+        "original": [
+            "i'll",
+            "describe",
+            "the",
+            "scene",
+            "from",
+            "the",
+            "story",
+            "i'm",
+            "currently",
+            "hearing",
+        ],
+    },
+    "perceived_movie": {
+        "llama3": _movie_prompt_llama,
+        "llama3.1": _movie_prompt_llama,
+        "llama70b": _movie_prompt_llama,
+        "opt": [
+            "</s>",
+            "I",
+            "'ll",
+            "Ġdescribe",
+            "Ġthe",
+            "Ġscene",
+            "Ġfrom",
+            "Ġthe",
+            "Ġmovie",
+            "ĠI",
+            "'m",
+            "Ġcurrently",
+            "Ġwatching",
+            ".",
+        ],
+        "gpt": [
+            "i'll</w>",
+            "describe</w>",
+            "the</w>",
+            "scene</w>",
+            "from</w>",
+            "the</w>",
+            "movie</w>",
+            "i'm</w>",
+            "currently</w>",
+            "watching</w>",
+            ".</w>",
+        ],
+        "original": [
+            "i'll",
+            "describe",
+            "the",
+            "scene",
+            "from",
+            "the",
+            "movie",
+            "i'm",
+            "currently",
+            "watching",
+        ],
+    },
 }
 
 STOPWORDS = {
@@ -300,9 +351,10 @@ def context_filter(proposals, context):
 class LanguageModel:
     """class for generating word sequences using a language model"""
 
-    def __init__(self, model, vocab, prompt, nuc_mass=1.0, nuc_ratio=0.0):
+    def __init__(self, model, vocab, prompt, experiment, nuc_mass=1.0, nuc_ratio=0.0):
         self.model = model
         self.has_prompt = prompt
+        self.experiment = experiment
         vocab = set(vocab)
         self.ids = {i for word, i in self.model.word2id.items() if word in vocab}
         self.nuc_mass, self.nuc_ratio = nuc_mass, nuc_ratio
@@ -315,16 +367,21 @@ class LanguageModel:
 
     def beam_propose(self, beam, context_words):
         """get possible extension words for each hypothesis in the decoder beam"""
-        if len(beam) == 1:
-            # nuc_words = [
-            #     w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
-            # ]
-            nuc_words = ["" for _ in range()]
+        if False and len(beam) == 1:
+            nuc_words = [
+                w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
+            ]
             nuc_logprobs = np.log(np.ones(len(nuc_words)) / len(nuc_words))
             return [(nuc_words, nuc_logprobs)]
         else:
-            if (len(beam[0].words) < 100) and self.has_prompt:
-                contexts = [PROMPT[self.model.llm] + hyp.words for hyp in beam]
+            if len(beam[0].words) < 100:
+                if self.has_prompt:
+                    contexts = [
+                        PROMPT[self.experiment][self.model.llm] + hyp.words
+                        for hyp in beam
+                    ]
+                else:
+                    contexts = [[INIT[self.model.llm]] + hyp.words for hyp in beam]
             else:
                 contexts = [hyp.words[-100:] for hyp in beam]
 

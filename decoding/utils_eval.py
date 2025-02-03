@@ -153,7 +153,7 @@ def get_em_environ(llm, subject):
 """generate null sequences with same times as predicted sequence"""
 
 
-def generate_null(pred_times, gpt_checkpoint, n, llm):
+def generate_null(pred_times, gpt_checkpoint, n, llm, prompt, experiment):
     # load language model
     gpt = GPT(
         llm=llm,
@@ -161,7 +161,12 @@ def generate_null(pred_times, gpt_checkpoint, n, llm):
         gpt=gpt_checkpoint,
     )
     lm = LanguageModel(
-        gpt, gpt.vocab, nuc_mass=config.LM_MASS, nuc_ratio=config.LM_RATIO
+        gpt,
+        gpt.vocab,
+        nuc_mass=config.LM_MASS,
+        nuc_ratio=config.LM_RATIO,
+        prompt=prompt,
+        experiment=experiment,
     )
     # generate null sequences
     null_words = []

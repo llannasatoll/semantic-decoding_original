@@ -32,7 +32,7 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "features",
             features.model.llm,
-        )
+        ).replace("Storage2", config.WRITE_DIR)
         if use_embedding:
             _, wordind2tokind[story] = features.make_stim(
                 word_seqs[story].data,
@@ -98,7 +98,7 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
             pca_path = (
                 "/Storage2/anna/semantic-decoding_original/pca_model_%s.pkl"
                 % features.model.llm
-            )
+            ).replace("Storage2", config.WRITE_DIR)
             if not os.path.exists(pca_path):
                 joblib.dump(pca, pca_path)
         ds_mat = pca.transform(ds_mat)

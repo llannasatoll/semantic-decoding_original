@@ -28,6 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--references", nargs="+", type=str, default=[])
     parser.add_argument("--null", type=int, default=10)
     parser.add_argument("--format", action="store_true")
+    parser.add_argument("--prompt", action="store_true")
     args = parser.parse_args()
 
     if len(args.references) == 0:
@@ -51,13 +52,14 @@ if __name__ == "__main__":
             rescale=False,
             score="recall",
         )
+    suffix = "acl_prompt" if args.prompt else "acl"
 
     # load prediction transcript
     pred_path = os.path.join(
         config.RESULT_DIR,
         args.subject,
         args.experiment,
-        args.task + "_" + args.llm + ".npz",
+        args.task + "_" + args.llm + suffix + ".npz",
     )
     pred_data = np.load(pred_path)
     pred_words, pred_times = pred_data["words"], pred_data["times"]
@@ -68,15 +70,30 @@ if __name__ == "__main__":
     else:
         gpt_checkpoint = "perceived"
     save_location = os.path.join(config.SCORE_DIR, args.subject, args.experiment)
-    if os.path.exists(os.path.join(save_location, args.task + "_" + args.llm) + ".npz"):
+    if os.path.exists(
+        os.path.join(save_location, args.task + "_" + args.llm)
+        + suffix
+        + "_format"
+        + ".npz"
+    ):
         print("EXIST!!!!")
         result = np.load(
-            os.path.join(save_location, args.task + "_" + args.llm) + ".npz"
+            os.path.join(save_location, args.task + "_" + args.llm)
+            + suffix
+            + "_format"
+            + ".npz"
         )
         null_word_list = result["null_word_list"].tolist()
     else:
         null_word_list = (
-            generate_null(pred_times, gpt_checkpoint, args.null, args.llm)
+            generate_null(
+                pred_times,
+                gpt_checkpoint,
+                args.null,
+                args.llm,
+                args.prompt,
+                args.experiment,
+            )
             if args.null
             else [[]]
         )
@@ -205,7 +222,7 @@ if __name__ == "__main__":
     np.savez(
         os.path.join(
             save_location,
-            args.task + "_" + args.llm + ("_format" if args.format else ""),
+            args.task + "_" + args.llm + suffix + ("_format" if args.format else ""),
         ),
         window_scores=window_scores,
         window_zscores=window_zscores,

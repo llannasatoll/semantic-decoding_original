@@ -71,6 +71,7 @@ if __name__ == "__main__":
         gpt,
         gpt.vocab,
         prompt=args.prompt,
+        experiment=args.experiment,
         nuc_mass=config.LM_MASS,
         nuc_ratio=config.LM_RATIO,
     )
@@ -116,7 +117,7 @@ if __name__ == "__main__":
             if len(nuc) < 1:
                 continue
             extend_words = [hyp.words + [x] for x in nuc]
-            extend_embs = list(features.extend(extend_words))
+            extend_embs = np.array(features.extend(extend_words))
             stim = sm.make_variants(sample_index, hyp.embs, extend_embs, trs)
             likelihoods = em.prs(stim, trs)
             local_extensions = [
@@ -132,6 +133,6 @@ if __name__ == "__main__":
     os.makedirs(save_location, exist_ok=True)
     decoder.save(
         os.path.join(save_location, args.task + "_" + args.llm)
-        + ("_prompt" if args.prompt else ""),
+        + ("acl_prompt" if args.prompt else "acl"),
         gpt,
     )

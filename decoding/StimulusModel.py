@@ -55,9 +55,7 @@ class StimulusModel:
         """apply finite impulse response delays to TR embeddings"""
         delays = config.STIM_DELAYS
         n_trs = tr_variants.shape[1]
-        del_tr_variants = torch.zeros(n_vars, n_trs, len(delays) * n_feats).to(
-            self.device
-        )
+        del_tr_variants = torch.zeros(n_vars, n_trs, len(delays) * n_feats)
         for c, d in enumerate(delays):
             feat_ind_start = c * n_feats
             feat_ind_end = (c + 1) * n_feats
@@ -70,22 +68,38 @@ class StimulusModel:
         """create stimulus features for each hypothesis"""
         n_variants, n_feats = len(var_embs), self.blank.shape[0]
         with torch.no_grad():
-            full = self.blank.repeat(
-                self.lanczos_mat.shape[1], 1
+            full = (
+                self.blank.expand(self.lanczos_mat.shape[1], -1).clone().to("cuda:0")
             )  # word times x features
-            full[:sample_index] = (
-                torch.tensor(np.array(hypothesis_embs))
-                .float()
-                .reshape(-1, n_feats)
-                .to(self.device)
+            hypothesis_embs_tensor = torch.from_numpy(np.array(hypothesis_embs)).to(
+                "cuda:0"
             )
-            variants = full.repeat(n_variants, 1, 1)  # variants x word times x features
-            variants[:, sample_index, :] = (
-                torch.tensor(np.array(var_embs)).float().to(self.device)
-            )
-            tr_variants = self._normalize(self._downsample(variants))
+            full[:sample_index] = hypothesis_embs_tensor.reshape(-1, full.shape[1])
+            # variants = full.expand(n_variants, -1, -1).to("cuda:1")
+            full = full.to(self.device)
+            variants = full.expand(n_variants, -1, -1).contiguous()
+            var_embs_tensor = torch.from_numpy(np.array(var_embs)).to(self.device)
+            variants[:, sample_index, :] = var_embs_tensor
+            # full = self.blank.repeat(
+            #     self.lanczos_mat.shape[1], 1
+            # )  # word times x features
+            # full[:sample_index] = (
+            #     torch.tensor(np.array(hypothesis_embs))
+            #     .float()
+            #     .reshape(-1, n_feats)
+            #     .to(self.device)
+            # )
+            # variants = full.repeat(n_variants, 1, 1)  # variants x word times x features
+            # variants[:, sample_index, :] = (
+            #     torch.from_numpy(var_embs).float().to(self.device)
+            # )
+            del var_embs_tensor, full
+            torch.cuda.empty_cache()
+            tr_variants = self._normalize(self._downsample(variants)).to("cpu")
+            del variants
+            torch.cuda.empty_cache()
             del_tr_variants = self._delay(
-                torch.tensor(tr_variants).float().to(self.device),
+                tr_variants,
                 n_variants,
                 n_feats,
             )
@@ -98,8 +112,23 @@ class LMFeatures:
     def __init__(self, model, layer, context_words):
         self.model, self.layer, self.context_words = model, layer, context_words
 
-    def extend(self, extensions, verbose=False):
+    def extend(self, extensions, verbose=False, batch_size=10):
         """outputs array of vectors corresponding to the last words of each extension"""
+        embs_list = []
+
+        for i in range(0, len(extensions), batch_size):
+            batch = extensions[i : i + batch_size]  # バッチごとに処理
+            contexts = [ext[-(self.context_words + 1) :] for ext in batch]
+
+            if verbose:
+                print(contexts)
+
+            context_array = self.model.get_context_array(contexts)
+            embs = self.model.get_hidden(context_array, layer=self.layer)
+            embs_list.append(embs[:, -1])  # 各バッチの結果を保存
+
+        return np.vstack(embs_list)  # 結果を結合して返す
+        return np.vstack(embs_list)
         contexts = [extension[-(self.context_words + 1) :] for extension in extensions]
         if verbose:
             print(contexts)
@@ -114,8 +143,8 @@ class LMFeatures:
             "train_stimulus",
             "word_vecs_and_wordind2tokind",
             str(story) + self.model.llm + ".npz",
-        )
-        if os.path.exists(path):
+        ).replace("Storage2", config.WRITE_DIR)
+        if False and os.path.exists(path):
             tmp = np.load(path)
             context_array, wordind2tokind = (
                 tmp["context_array"],

@@ -10,6 +10,7 @@ import config
 
 zs = lambda v: (v - v.mean(0)) / v.std(0)  ## z-score function
 USE_CPU = False
+print("USE_CPU:", USE_CPU)
 
 
 def ridge(stim, resp, alpha, singcutoff=1e-10, normalpha=False):
@@ -133,7 +134,7 @@ def ridge_corr(
     ## Calculate SVD of stimulus matrix
     logger.debug("Doing SVD...")
     try:
-        if USE_CPU:
+        if False and USE_CPU:
             raise torch._C._LinAlgError
         Rstim = torch.tensor(Rstim, device=config.EM_DEVICE)
         U, S, Vh = torch.linalg.svd(Rstim, full_matrices=False)
@@ -420,6 +421,11 @@ def bootstrap_ridge(
     import time
 
     np.save(f"./tmp_{int(time.time())}", valphas)
+    ## ココカラ
+    # nalphas = alphas
+    # valphas = np.load("./tmp_1735818971.npy")
+    # allRcorrs = None
+    ## ココマデ
     valphas = torch.tensor(valphas, device=config.EM_DEVICE)
     logger.info("Computing weights for each response using entire training set..")
     UR = torch.matmul(U.T, torch.nan_to_num(Rresp))

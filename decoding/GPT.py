@@ -55,34 +55,17 @@ class GPT:
                 device_map[f"model.layers.{i}"] = 4
             for i in range(65, 80):
                 device_map[f"model.layers.{i}"] = 5
-            # for i in range(0, 20):
-            #     device_map[f'model.layers.{i}'] = 2
-            # for i in range(20, 40):
-            #     device_map[f'model.layers.{i}'] = 3
-            # for i in range(40, 60):
-            #     device_map[f'model.layers.{i}'] = 4
-            # for i in range(60, 80):
-            # device_map[f'model.layers.{i}'] = 5
             device_map["model.norm"] = 4
             device_map["lm_head"] = 5
             self.model = (
                 (
                     LlamaForCausalLM.from_pretrained(
                         config.MODELS[llm], device_map=device_map
-                    ).eval()  # "auto")#, max_memory={0: "20GB", 1: "20GB", 2: "80GB", 3: "80GB", 4: "80GB", 5: "80GB"})
+                    ).eval()
                 )
                 if not not_load_model
                 else None
             )
-            # self.model = (
-            #     (
-            #         LlamaForCausalLM.from_pretrained(
-            #             config.MODELS[llm], device_map="auto"
-            #         ).eval()
-            #     )
-            #     if not not_load_model
-            #     else None
-            # )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -96,11 +79,6 @@ class GPT:
                 LlamaForCausalLM.from_pretrained(
                     config.MODELS[llm], device_map="auto"
                 ).eval()
-                # LlamaForCausalLM.from_pretrained(
-                #     config.MODELS[llm],
-                #     device_map="auto",
-                #     max_memory={0: "40GB", 1: "80GB"},
-                # ).eval()
                 if not not_load_model
                 else None
             )

@@ -14,11 +14,11 @@ DATA_TRAIN_DIR = os.path.join(REPO_DIR, "data_train")
 DATA_TEST_DIR = os.path.join(REPO_DIR, "data_test")
 MODEL_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models"
-)  # .replace("Storage2", "home")
+)
 print("MODEL_DIR :", MODEL_DIR)
 RESULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
-)  # .replace("Storage2", WRITE_DIR)
+)
 SCORE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scores"
 ).replace("Storage2", WRITE_DIR)

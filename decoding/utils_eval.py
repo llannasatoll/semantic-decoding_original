@@ -84,21 +84,6 @@ def segment_data(data, times, cutoffs):
     ]
 
 
-# def segment_data(data, times, cutoffs):
-#     segments = [
-#         [x for c, x in zip(times, data) if c >= start and c < end]
-#         for start, end in cutoffs
-#     ]
-#     result = []
-#     words = 24
-#     for segment in segments:
-#         mid = len(segment) // 2
-#         start = find_split_index(segment, mid, 0, -1, words)
-#         end = find_split_index(segment, mid + 1, len(segment), 1, words)
-#         result.append(segment[start:end])
-#     return result
-
-
 def get_em_environ(llm, subject):
     # load responses
     hf = h5py.File(
@@ -283,10 +268,6 @@ class BERTSCORE(object):
     def score(self, ref, pred):
         ref_strings = [" ".join(x) for x in ref]
         pred_strings = [self.mark.join(x) for x in pred]
-        # print(ref_strings[:2])
-        # print(pred_strings[:2])
-        # print([len(sent.split(" ")) for sent in ref_strings])
-        # print([len(sent.split(" ")) for sent in pred_strings])
         return self.metric.score(cands=pred_strings, refs=ref_strings)[
             self.score_id
         ].numpy()

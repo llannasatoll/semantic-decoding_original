@@ -197,7 +197,6 @@ if __name__ == "__main__":
                     [
                         metric.score(
                             ref=ref_windows,
-                            # pred=[w for w in ["".join(null).split(" ") for null in null_windows] if w != ""],
                             pred=[
                                 [w for w in "".join(null).split(" ") if w.strip()]
                                 for null in null_windows
@@ -208,7 +207,6 @@ if __name__ == "__main__":
                 )
                 window_scores[(reference, mname)] = metric.score(
                     ref=ref_windows,
-                    # pred=[w for w in ["".join(pred).split(" ") for pred in pred_windows] if w != ""],
                     pred=[
                         [w for w in "".join(pred).split(" ") if w.strip()]
                         for pred in pred_windows

@@ -105,13 +105,6 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
                 joblib.dump(pca, pca_path)
         ds_mat = pca.transform(ds_mat)
     del_mat = make_delayed(ds_mat, config.STIM_DELAYS)
-    # embeds = np.vstack([np.load(os.path.join(config.DATA_TRAIN_DIR, 'train_stimulus', 'embedding_-120to-1', "text-embedding-3-small", story)+'.npy') for story in stories])
-    # r_mean2, r_std2 = embeds.mean(0), embeds.std(0)
-    # print("CONCAT EMBEDDING")
-    # r_std2[r_std2 == 0] = 1
-    # embeds = np.nan_to_num(np.dot((embeds - r_mean2), np.linalg.inv(np.diag(r_std2))))
-    # # embeds[1:] = embeds[:-1]
-    # del_mat = np.concatenate((del_mat, embeds), axis=1)  # axis=1で列方向に結合
     if tr_stats is None:
         return del_mat, (r_mean, r_std), (word_mean, word_std)
     else:

@@ -373,36 +373,28 @@ class LanguageModel:
 
     def beam_propose(self, beam, context_words):
         """get possible extension words for each hypothesis in the decoder beam"""
-        if False and len(beam) == 1:
-            nuc_words = [
-                w for w in INIT[self.model.llm] if self.model.word2id[w] in self.ids
-            ]
-            nuc_logprobs = np.log(np.ones(len(nuc_words)) / len(nuc_words))
-            return [(nuc_words, nuc_logprobs)]
-        else:
-            if len(beam[0].words) < 100:
-                if self.has_prompt:
-                    contexts = [
-                        PROMPT[self.experiment][self.model.llm] + hyp.words
-                        for hyp in beam
-                    ]
-                else:
-                    contexts = [[INIT[self.model.llm]] + hyp.words for hyp in beam]
+        if len(beam[0].words) < 100:
+            if self.has_prompt:
+                contexts = [
+                    PROMPT[self.experiment][self.model.llm] + hyp.words for hyp in beam
+                ]
             else:
-                contexts = [hyp.words[-100:] for hyp in beam]
+                contexts = [[INIT[self.model.llm]] + hyp.words for hyp in beam]
+        else:
+            contexts = [hyp.words[-100:] for hyp in beam]
 
-            beam_probs = self.ps(contexts)
-            beam_nucs = []
-            for context, probs in zip(contexts, beam_probs):
-                nuc_ids = get_nucleus(
-                    probs, nuc_mass=self.nuc_mass, nuc_ratio=self.nuc_ratio
-                )
-                nuc_words = [self.model.vocab[i] for i in nuc_ids if i in self.ids]
-                nuc_words_filtered = context_filter(nuc_words, context[-20:])
-                if len(nuc_words_filtered) == 0:
-                    nuc_words_filtered = nuc_words
-                nuc_logprobs = np.log(
-                    [probs[self.model.word2id[w]] for w in nuc_words_filtered]
-                )
-                beam_nucs.append((nuc_words, nuc_logprobs))
-            return beam_nucs
+        beam_probs = self.ps(contexts)
+        beam_nucs = []
+        for context, probs in zip(contexts, beam_probs):
+            nuc_ids = get_nucleus(
+                probs, nuc_mass=self.nuc_mass, nuc_ratio=self.nuc_ratio
+            )
+            nuc_words = [self.model.vocab[i] for i in nuc_ids if i in self.ids]
+            nuc_words_filtered = context_filter(nuc_words, context[-20:])
+            if len(nuc_words_filtered) == 0:
+                nuc_words_filtered = nuc_words
+            nuc_logprobs = np.log(
+                [probs[self.model.word2id[w]] for w in nuc_words_filtered]
+            )
+            beam_nucs.append((nuc_words, nuc_logprobs))
+        return beam_nucs

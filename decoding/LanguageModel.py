@@ -15,6 +15,8 @@ INIT = {
     "gpt": ".</w>",
     "llama3": "<|begin_of_text|>",
     "llama3.1": "<|begin_of_text|>",
+    "llama1b": "<|begin_of_text|>",
+    "llama3b": "<|begin_of_text|>",
     "llama70b": "<|begin_of_text|>",
     "opt": "</s>",
 }
@@ -55,6 +57,8 @@ PROMPT = {
     "perceived_speech": {
         "llama3": _speech_prompt_llama,
         "llama3.1": _speech_prompt_llama,
+        "llama1b": _speech_prompt_llama,
+        "llama3b": _speech_prompt_llama,
         "llama70b": _speech_prompt_llama,
         "gpt": [
             "i'll</w>",
@@ -85,6 +89,8 @@ PROMPT = {
     "perceived_movie": {
         "llama3": _movie_prompt_llama,
         "llama3.1": _movie_prompt_llama,
+        "llama1b": _movie_prompt_llama,
+        "llama3b": _movie_prompt_llama,
         "llama70b": _movie_prompt_llama,
         "opt": [
             "</s>",

@@ -36,27 +36,6 @@ class GPT:
                 self.vocab = json.load(f)
             self.word2id = {w: i for i, w in enumerate(self.vocab)}
             self.UNK_ID = self.word2id["<unk>"]
-        elif "llama3" in llm:
-            self.model = (
-                LlamaForCausalLM.from_pretrained(
-                    config.MODELS[llm], device_map="auto"
-                ).eval()
-                # LlamaForCausalLM.from_pretrained(
-                #     config.MODELS[llm],
-                #     device_map="auto",
-                #     max_memory={0: "40GB", 1: "80GB"},
-                # ).eval()
-                if not not_load_model
-                else None
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
-            self.word2id = self.tokenizer.vocab
-            self.vocab = [
-                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
-            ]
-            self.UNK_ID = (
-                self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
-            )
         elif llm == "llama70b":
             device_map = {
                 "model.embed_tokens": 1,
@@ -104,7 +83,27 @@ class GPT:
             #     if not not_load_model
             #     else None
             # )
-
+            self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
+            self.word2id = self.tokenizer.vocab
+            self.vocab = [
+                word for word, _ in sorted(self.word2id.items(), key=lambda x: x[1])
+            ]
+            self.UNK_ID = (
+                self.tokenizer.unk_token_id if self.tokenizer.unk_token_id else 0
+            )
+        elif "llama" in llm:
+            self.model = (
+                LlamaForCausalLM.from_pretrained(
+                    config.MODELS[llm], device_map="auto"
+                ).eval()
+                # LlamaForCausalLM.from_pretrained(
+                #     config.MODELS[llm],
+                #     device_map="auto",
+                #     max_memory={0: "40GB", 1: "80GB"},
+                # ).eval()
+                if not not_load_model
+                else None
+            )
             self.tokenizer = AutoTokenizer.from_pretrained(config.MODELS[llm])
             self.word2id = self.tokenizer.vocab
             self.vocab = [
@@ -288,7 +287,15 @@ class GPT:
                     "features",
                     self.llm,
                 ).replace("Storage2", config.WRITE_DIR)
-                if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
+                if self.llm in [
+                    "falcon",
+                    "falcon7b",
+                    "llama70b",
+                    "llama3",
+                    "llama3.1",
+                    "llama1b",
+                    "llama3b",
+                ]:
                     os.makedirs(save_location, exist_ok=True)
                 if os.path.exists(
                     os.path.join(save_location, story + "_layer" + str(layer) + ".npy")
@@ -323,7 +330,15 @@ class GPT:
                             )
                             result[j] = np.concatenate([result[j], output])
                             # output = outputs.hidden_states[layer].detach().cpu().numpy()[0,-1,:].reshape(1, -1)
-                if self.llm in ["falcon", "falcon7b", "llama70b", "llama3", "llama3.1"]:
+                if self.llm in [
+                    "falcon",
+                    "falcon7b",
+                    "llama70b",
+                    "llama3",
+                    "llama3.1",
+                    "llama1b",
+                    "llama3b",
+                ]:
                     for i in range(len(config.GPT_LAYERS[self.llm])):
                         np.save(
                             os.path.join(
@@ -349,7 +364,7 @@ class GPT:
         return probs
 
     def decode_misencoded_text(self, words):
-        if self.llm in ["llama3", "llama3.1", "opt", "llama70b"]:
+        if self.llm in ["llama3", "llama3.1", "opt", "llama70b", "llama1b", "llama3b"]:
             return [
                 w.replace("Ġ", " ")
                 .replace("âĢĻ", "'")

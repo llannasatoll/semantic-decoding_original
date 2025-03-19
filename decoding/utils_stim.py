@@ -88,6 +88,8 @@ def get_stim(stories, features, tr_stats=None, use_embedding=False):
     if config.IS_PCA and features.model.llm in [
         "llama3",
         "llama3.1",
+        "llama1b",
+        "llama3b",
         "opt",
         "llama70b",
         "falcon",

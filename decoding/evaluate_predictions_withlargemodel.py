@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("--metrics", nargs="+", type=str, default=["BERT"])
     parser.add_argument("--references", nargs="+", type=str, default=[])
     parser.add_argument("--format", action="store_true")
+    parser.add_argument("--prompt", action="store_true")
     args = parser.parse_args()
 
     if len(args.references) == 0:
@@ -28,6 +29,8 @@ if __name__ == "__main__":
 
     with open(os.path.join(config.DATA_TEST_DIR, "eval_segments.json"), "r") as f:
         eval_segments = json.load(f)
+
+    suffix = "acl_prompt" if args.prompt else "acl"
 
     # load language similarity metrics
     metrics = {}
@@ -45,7 +48,7 @@ if __name__ == "__main__":
         config.RESULT_DIR,
         args.subject,
         args.experiment,
-        args.task + "_" + args.llm + ".npz",
+        args.task + "_" + args.llm + suffix + ".npz",
     )
     pred_data = np.load(pred_path)
     pred_words, pred_times = pred_data["words"], pred_data["times"]
@@ -60,7 +63,12 @@ if __name__ == "__main__":
         config.SCORE_DIR,
         args.subject,
         args.experiment,
-        args.task + "_" + args.llm + ("_format" if args.format else "") + ".npz",
+        args.task
+        + "_"
+        + args.llm
+        + suffix
+        + ("_format" if args.format else "")
+        + ".npz",
     )
     null_word_list = np.load(save_location)["null_word_list"].tolist()
 
@@ -91,6 +99,16 @@ if __name__ == "__main__":
                 "(",
                 ")",
                 ",",
+                "#",
+                "%",
+                "+",
+                "*",
+                "_",
+                "=",
+                "/",
+                ";",
+                "[",
+                "]",
             ]:
                 replace = " " if c == "\n" else ""
                 pred_words = [

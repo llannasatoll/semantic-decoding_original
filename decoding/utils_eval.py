@@ -202,8 +202,8 @@ class WER(object):
 
     def score(self, ref, pred):
         scores = []
-        print(ref[:2])
-        print(pred[:2])
+        # print(ref[:2])
+        # print(pred[:2])
         for ref_seg, pred_seg in zip(ref, pred):
             if len(ref_seg) == 0:
                 error = 1.0
@@ -228,8 +228,8 @@ class BLEU(object):
 
     def score(self, ref, pred):
         results = []
-        print(ref[:2])
-        print(pred[:2])
+        # print(ref[:2])
+        # print(pred[:2])
         for r, p in zip(ref, pred):
             self.metric.add_batch(predictions=[p], references=[[r]])
             results.append(self.metric.compute(max_order=self.n)["bleu"])
@@ -250,8 +250,8 @@ class METEOR(object):
         results = []
         ref_strings = [" ".join(x) for x in ref]
         pred_strings = [self.mark.join(x) for x in pred]
-        print(ref_strings[:2])
-        print(pred_strings[:2])
+        # print(ref_strings[:2])
+        # print(pred_strings[:2])
         for r, p in zip(ref_strings, pred_strings):
             self.metric.add_batch(predictions=[p], references=[r])
             results.append(self.metric.compute()["meteor"])
@@ -283,8 +283,8 @@ class BERTSCORE(object):
     def score(self, ref, pred):
         ref_strings = [" ".join(x) for x in ref]
         pred_strings = [self.mark.join(x) for x in pred]
-        print(ref_strings[:2])
-        print(pred_strings[:2])
+        # print(ref_strings[:2])
+        # print(pred_strings[:2])
         # print([len(sent.split(" ")) for sent in ref_strings])
         # print([len(sent.split(" ")) for sent in pred_strings])
         return self.metric.score(cands=pred_strings, refs=ref_strings)[

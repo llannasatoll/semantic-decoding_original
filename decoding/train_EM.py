@@ -74,20 +74,6 @@ if __name__ == "__main__":
     layers = (
         config.GPT_LAYERS[args.llm] if args.notsave else [config.GPT_LAYER[args.llm]]
     )
-    # if args.notsave:
-    #     # Calculate correlation using test story.
-    #     with h5py.File(
-    #         os.path.join(
-    #             config.DATA_TEST_DIR,
-    #             "test_response",
-    #             args.subject,
-    #             "perceived_speech",
-    #             "wheretheressmoke" + ".hf5",
-    #         ),
-    #         "r",
-    #     ) as hf:
-    #         resp = np.nan_to_num(hf["data"][:])
-    #     layers = [config.GPT_LAYERS[args.llm]]
     if args.use_embedding or os.path.exists(
         os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -131,25 +117,7 @@ if __name__ == "__main__":
         if not args.notsave:
             bscorrs = bscorrs.mean(2).max(0)
             vox = np.sort(np.argsort(bscorrs)[-config.VOXELS :])
-        # del rstim, rresp
 
-        # if args.notsave:
-        #     # Calculate correlation using test story.
-        #     rstim = get_stim(["wheretheressmoke"], features, tr_stats=tr_stats)
-        #     pred = rstim.dot(weights)
-        #     if args.use_gauss:
-        #         diff = np.linalg.norm(resp - pred, axis=0)
-        #         logger.warning(
-        #             f"({layer},[{-1 * diff.mean()}, {-1 * diff[np.argsort(diff)][:len(diff)//2].mean()}, {-1 * diff[np.argsort(diff)][:10000].mean()}]),"
-        #         )
-        #     else:
-        #         corr = np.array(
-        #             [
-        #                 compute_correlation(resp[:, i], pred[:, i])
-        #                 for i in range(resp.shape[-1])
-        #             ]
-        #         )
-        #         logger.warning(f"Layer : {layer} , mean(fdr(corr)) : {corr.mean()}")
     if args.notsave:
         exit()
 

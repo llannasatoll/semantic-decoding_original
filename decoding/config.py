@@ -47,7 +47,7 @@ GPT_LAYERS = {
     "original": [9],
     "llama3": [13],
     "llama3.1": list(range(4, 20)),
-    "llama1b": list(range(2, 12)),
+    "llama1b": list(range(7, 11)),
     "llama3b": list(range(13, 15)),
     "gpt": list(range(1, 13)),
     "llama70b": [25, 29, 33, 37],

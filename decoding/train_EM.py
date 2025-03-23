@@ -13,7 +13,10 @@ from GPT import GPT
 from StimulusModel import LMFeatures
 from utils_stim import get_stim
 from utils_resp import get_resp
-from utils_ridge.ridge import ridge, bootstrap_ridge
+
+# from utils_ridge.ridge import ridge, bootstrap_ridge
+from utils_transformer.tmp import train_em, FMRISequenceDataset
+
 
 np.random.seed(42)
 zs = lambda v: (v - v.mean(0)) / v.std(0)  ## z-score function
@@ -74,6 +77,19 @@ if __name__ == "__main__":
     layers = (
         config.GPT_LAYERS[args.llm] if args.notsave else [config.GPT_LAYER[args.llm]]
     )
+    if args.notsave:
+        # Calculate correlation using test story.
+        with h5py.File(
+            os.path.join(
+                config.DATA_TEST_DIR,
+                "test_response",
+                args.subject,
+                "perceived_speech",
+                "wheretheressmoke" + ".hf5",
+            ),
+            "r",
+        ) as hf:
+            resp = np.nan_to_num(hf["data"][:])
     if args.use_embedding or os.path.exists(
         os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -103,21 +119,56 @@ if __name__ == "__main__":
             stories, features, use_embedding=args.use_embedding
         )
         nchunks = int(np.ceil(rresp.shape[0] / 5 / config.CHUNKLEN))
-        weights, alphas, bscorrs = bootstrap_ridge(
-            rstim,
-            rresp,
-            use_gauss=args.use_gauss,
-            alphas=config.ALPHAS,
-            nboots=config.NBOOTS,
-            chunklen=config.CHUNKLEN,
-            nchunks=nchunks,
-            logger=logger,
-            notsave=args.notsave,
+        dataset = FMRISequenceDataset(rstim, rresp)
+        input_dim = 8192  # Rstimの特徴量数
+
+        output_dim = rresp.shape[1]
+        # output_dim = 10  # Rrespのチャネル数（BOLD信号の数）
+        model = train_em(
+            dataset, input_dim=input_dim, output_dim=output_dim, device=config.EM_DEVICE
         )
+        # weights, alphas, bscorrs = bootstrap_ridge(
+        #     rstim,
+        #     rresp,
+        #     use_gauss=args.use_gauss,
+        #     alphas=config.ALPHAS,
+        #     nboots=config.NBOOTS,
+        #     chunklen=config.CHUNKLEN,
+        #     nchunks=nchunks,
+        #     logger=logger,
+        #     notsave=args.notsave,
+        # )
         if not args.notsave:
             bscorrs = bscorrs.mean(2).max(0)
             vox = np.sort(np.argsort(bscorrs)[-config.VOXELS :])
 
+        if args.notsave:
+            # Calculate correlation using test story.
+            rstim = get_stim(["wheretheressmoke"], features, tr_stats=tr_stats)
+            model.eval()
+            with torch.no_grad():
+                rstim = (
+                    torch.tensor(rstim, dtype=torch.float32)
+                    .unsqueeze(0)
+                    .to(config.EM_DEVICE)
+                )
+                pred = model(rstim)
+                pred = pred[0].cpu().numpy()
+                print(pred.shape)
+            # pred = rstim.dot(weights)
+            if args.use_gauss:
+                diff = np.linalg.norm(resp - pred, axis=0)
+                logger.warning(
+                    f"({layer},[{-1 * diff.mean()}, {-1 * diff[np.argsort(diff)][:len(diff)//2].mean()}, {-1 * diff[np.argsort(diff)][:10000].mean()}]),"
+                )
+            else:
+                corr = np.array(
+                    [
+                        compute_correlation(resp[:, i], pred[:, i])
+                        for i in range(resp.shape[-1])
+                    ]
+                )
+                logger.warning(f"Layer : {layer} , mean(fdr(corr)) : {corr.mean()}")
     if args.notsave:
         exit()
 

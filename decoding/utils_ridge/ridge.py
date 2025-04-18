@@ -415,8 +415,8 @@ def bootstrap_ridge(
         bestalpha = alphas[bestalphaind]
         valphas = np.array([bestalpha] * nvox)
         logger.info("Best alpha = %0.3f" % bestalpha)
-    if notsave:
-        return None, None, None
+    # if notsave:
+    #     return None, None, None
 
     import time
 

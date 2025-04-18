@@ -48,6 +48,7 @@ GPT_LAYERS = {
     "llama3": [13],
     "llama3.1": list(range(4, 20)),
     "llama1b": list(range(7, 11)),
+    # "llama1b": list(range(12, 17)),
     "llama3b": list(range(13, 15)),
     "gpt": list(range(1, 13)),
     "llama70b": [25, 29, 33, 37],
@@ -75,7 +76,7 @@ WINDOW = 20
 # devices
 
 GPT_DEVICE = "cuda"
-EM_DEVICE = "cuda"
+EM_DEVICE = "cpu"
 SM_DEVICE = "cuda"
 
 gpt = "perceived"

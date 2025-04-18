@@ -14,7 +14,7 @@ from StimulusModel import LMFeatures
 from utils_stim import get_stim
 from utils_resp import get_resp
 
-# from utils_ridge.ridge import ridge, bootstrap_ridge
+from utils_ridge.ridge import ridge, bootstrap_ridge
 from utils_transformer.tmp import train_em, FMRISequenceDataset
 
 
@@ -105,7 +105,6 @@ if __name__ == "__main__":
         gpt = GPT(llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt)
         context_words = config.GPT_WORDS
     rresp = get_resp(args.subject, stories, stack=True)
-
     for layer in layers:
         print("layer %d" % layer)
         features = LMFeatures(
@@ -119,43 +118,47 @@ if __name__ == "__main__":
             stories, features, use_embedding=args.use_embedding
         )
         nchunks = int(np.ceil(rresp.shape[0] / 5 / config.CHUNKLEN))
-        dataset = FMRISequenceDataset(rstim, rresp)
-        input_dim = 8192  # Rstimの特徴量数
+        if True:  ### transformer
+            dataset = FMRISequenceDataset(rstim, rresp)
+            input_dim = 8192  # Rstimの特徴量数
 
-        output_dim = rresp.shape[1]
-        # output_dim = 10  # Rrespのチャネル数（BOLD信号の数）
-        model = train_em(
-            dataset, input_dim=input_dim, output_dim=output_dim, device=config.EM_DEVICE
-        )
-        # weights, alphas, bscorrs = bootstrap_ridge(
-        #     rstim,
-        #     rresp,
-        #     use_gauss=args.use_gauss,
-        #     alphas=config.ALPHAS,
-        #     nboots=config.NBOOTS,
-        #     chunklen=config.CHUNKLEN,
-        #     nchunks=nchunks,
-        #     logger=logger,
-        #     notsave=args.notsave,
-        # )
-        if not args.notsave:
-            bscorrs = bscorrs.mean(2).max(0)
-            vox = np.sort(np.argsort(bscorrs)[-config.VOXELS :])
-
+            output_dim = rresp.shape[1]
+            rstim = get_stim(["wheretheressmoke"], features, tr_stats=tr_stats)
+            # output_dim = 10  # Rrespのチャネル数（BOLD信号の数）
+            model = train_em(
+                dataset,
+                input_dim=input_dim,
+                output_dim=output_dim,
+                device=config.EM_DEVICE,
+                rstim=rstim,
+                resp=resp,
+            )
+        else:
+            weights, alphas, bscorrs = bootstrap_ridge(
+                rstim,
+                rresp,
+                use_gauss=args.use_gauss,
+                alphas=config.ALPHAS,
+                nboots=config.NBOOTS,
+                chunklen=config.CHUNKLEN,
+                nchunks=nchunks,
+                logger=logger,
+                notsave=args.notsave,
+            )
         if args.notsave:
             # Calculate correlation using test story.
-            rstim = get_stim(["wheretheressmoke"], features, tr_stats=tr_stats)
-            model.eval()
-            with torch.no_grad():
-                rstim = (
-                    torch.tensor(rstim, dtype=torch.float32)
-                    .unsqueeze(0)
-                    .to(config.EM_DEVICE)
-                )
-                pred = model(rstim)
-                pred = pred[0].cpu().numpy()
-                print(pred.shape)
-            # pred = rstim.dot(weights)
+            if True:  ### transforemer
+                model.eval()
+                with torch.no_grad():
+                    rstim = (
+                        torch.tensor(rstim, dtype=torch.float32)
+                        .unsqueeze(0)
+                        .to(config.EM_DEVICE)
+                    )
+                    pred = model(rstim)
+                    pred = pred[0].cpu().numpy()
+            else:  # ridge
+                pred = rstim.dot(weights)
             if args.use_gauss:
                 diff = np.linalg.norm(resp - pred, axis=0)
                 logger.warning(
@@ -169,7 +172,10 @@ if __name__ == "__main__":
                     ]
                 )
                 logger.warning(f"Layer : {layer} , mean(fdr(corr)) : {corr.mean()}")
-    if args.notsave:
+    if not args.notsave:
+        bscorrs = bscorrs.mean(2).max(0)
+        vox = np.sort(np.argsort(bscorrs)[-config.VOXELS :])
+    else:
         exit()
 
     # estimate noise model

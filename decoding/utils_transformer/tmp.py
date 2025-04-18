@@ -3,6 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import math
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+
+import numpy as np
+
+import config
 
 # import numpy as np
 # from transformer import TransformerRegressor
@@ -92,16 +99,58 @@ class FMRISequenceDataset(Dataset):
         )
 
 
-def train_em(dataset, input_dim, output_dim, device):
+def compute_correlation(x, y):
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    cov_xy = np.mean((x - mean_x) * (y - mean_y))
+
+    std_x = np.sqrt(np.mean((x - mean_x) ** 2))
+    std_y = np.sqrt(np.mean((y - mean_y) ** 2))
+
+    correlation = cov_xy / (std_x * std_y)
+    return correlation
+
+
+def eval(model, rstim, resp):
+    model.eval()
+    with torch.no_grad():
+        rstim = (
+            torch.tensor(rstim, dtype=torch.float32).unsqueeze(0).to(config.EM_DEVICE)
+        )
+        pred = model(rstim)
+        pred = pred[0].cpu().numpy()
+    corr = np.array(
+        [compute_correlation(resp[:, i], pred[:, i]) for i in range(resp.shape[-1])]
+    )
+    print(f"mean(fdr(corr)) : {corr.mean()}")
+
+
+def train_em(dataset, input_dim, output_dim, device, rstim, resp):
     # シーケンス全体をひとまとめにして扱うのでbatch_sizeは1
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     # モデルのハイパーパラメータ
-    d_model = 1024
+    d_model = 256
     nhead = 4
     num_layers = 2
-    dropout = 0.1
+    dropout = 0.3
+    print("d_model", d_model)
+    print("nhead", nhead)
+    print("num_layers", num_layers)
+    print("dropout", dropout)
 
+    # dist.init_process_group(backend="nccl")
+    # local_rank = 0
+    # sampler = DistributedSampler(dataset, rank=local_rank)
+    # dataloader = DataLoader(
+    #     dataset,
+    #     batch_size=1,
+    #     sampler=sampler,
+    #     shuffle=False,
+    #     num_workers=4,
+    #     pin_memory=True,
+    # )
     model = TransformerRegressor(
         input_dim,
         d_model,
@@ -111,14 +160,16 @@ def train_em(dataset, input_dim, output_dim, device):
         dropout,
         pe_dim=dataset.Rstim.shape[0],
     )
-    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
+    # model = DDP(model, device_ids=[local_rank])
+    # model = nn.DataParallel(model, device_ids=[0, 1, 2, 3])
     model.to(device)
     criterion = nn.MSELoss()  # 回帰問題なので平均二乗誤差
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-    num_epochs = 100
-    model.train()
+    num_epochs = 5000
+    # model.train()
     for epoch in range(num_epochs):
+        model.train()
         for stim_seq, resp_seq in dataloader:
             stim_seq = stim_seq.to(device)
             resp_seq = resp_seq.to(device)
@@ -132,5 +183,7 @@ def train_em(dataset, input_dim, output_dim, device):
             optimizer.step()
         if epoch % 20 == 0:
             print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}")
+        if epoch % 100 == 0:
+            eval(model, rstim, resp)
 
     return model

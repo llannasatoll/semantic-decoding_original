@@ -157,7 +157,7 @@ def generate_null(pred_times, gpt_checkpoint, n, llm, prompt, experiment):
     null_words = []
     for _count in range(n):
         print(f"{_count}/{n}")
-        decoder = Decoder(pred_times, 2 * config.EXTENSIONS)
+        decoder = Decoder(pred_times, 1)
         for sample_index in range(len(pred_times)):
             ncontext = decoder.time_window(sample_index, config.LM_TIME, floor=5)
             beam_nucs = lm.beam_propose(decoder.beam, ncontext)
@@ -173,6 +173,7 @@ def generate_null(pred_times, gpt_checkpoint, n, llm, prompt, experiment):
                 decoder.add_extensions(local_extensions, likelihoods, nextensions)
             decoder.extend(verbose=False)
         null_words.append(decoder.beam[0].words)
+        print(decoder.beam[0].words)
     return [gpt.decode_misencoded_text(null) for null in null_words]
 
 

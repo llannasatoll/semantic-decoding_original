@@ -34,7 +34,7 @@ _speech_prompt_llama = [
     "ĠI",
     "'m",
     "Ġcurrently",
-    "Ġhearingg",
+    "Ġhearing",
     ".",
 ]
 _movie_prompt_llama = [

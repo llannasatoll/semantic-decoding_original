@@ -170,7 +170,7 @@ if __name__ == "__main__":
         ref_windows = segment_data(ref_words, ref_times, window_cutoffs)
         pred_windows = segment_data(pred_words, pred_times, window_cutoffs)
         null_window_list = [
-            segment_data(null_words, pred_times, window_cutoffs)
+            segment_data(null_words, pred_times, window_cutoffs) if null_words else []
             for null_words in null_word_list
         ]
 
@@ -178,12 +178,16 @@ if __name__ == "__main__":
             if mname == "WER":
                 window_null_scores[(reference, mname)] = np.array(
                     [
-                        metric.score(
-                            ref=[" ".join(ref) for ref in ref_windows],
-                            pred=[
-                                config.MARK[args.llm].join(null)
-                                for null in null_windows
-                            ],
+                        (
+                            metric.score(
+                                ref=[" ".join(ref) for ref in ref_windows],
+                                pred=[
+                                    config.MARK[args.llm].join(null)
+                                    for null in null_windows
+                                ],
+                            )
+                            if null_windows
+                            else []
                         )
                         for null_windows in null_window_list
                     ]
@@ -195,12 +199,28 @@ if __name__ == "__main__":
             elif mname == "BLEU" and config.MARK[args.llm] == "":
                 window_null_scores[(reference, mname)] = np.array(
                     [
-                        metric.score(
-                            ref=ref_windows,
-                            pred=[
-                                [w for w in "".join(null).split(" ") if w.strip()]
-                                for null in null_windows
-                            ],
+                        (
+                            metric.score(
+                                ref=ref_windows,
+                                pred=[
+                                    (
+                                        [
+                                            w
+                                            for w in "".join(null).split(" ")
+                                            if w.strip()
+                                        ]
+                                        if [
+                                            w
+                                            for w in "".join(null).split(" ")
+                                            if w.strip()
+                                        ]
+                                        else ["<EMPTY_PLACEHOLDER>"]
+                                    )
+                                    for null in null_windows
+                                ],
+                            )
+                            if null_windows
+                            else []
                         )
                         for null_windows in null_window_list
                     ]
@@ -215,7 +235,11 @@ if __name__ == "__main__":
             else:
                 window_null_scores[(reference, mname)] = np.array(
                     [
-                        metric.score(ref=ref_windows, pred=null_windows)
+                        (
+                            metric.score(ref=ref_windows, pred=null_windows)
+                            if null_windows
+                            else []
+                        )
                         for null_windows in null_window_list
                     ]
                 )

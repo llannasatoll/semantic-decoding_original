@@ -73,7 +73,7 @@ if __name__ == "__main__":
         sess_to_story = json.load(f)
     for sess in args.sessions:
         stories.extend(sess_to_story[str(sess)])
-
+    stories = ["wheretheressmoke"]
     layers = (
         config.GPT_LAYERS[args.llm] if args.notsave else [config.GPT_LAYER[args.llm]]
     )
@@ -90,12 +90,15 @@ if __name__ == "__main__":
             "r",
         ) as hf:
             resp = np.nan_to_num(hf["data"][:])
-    if args.use_embedding or os.path.exists(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "features",
-            args.llm,
-        ).replace("Storage2", config.WRITE_DIR)
+    if False and (
+        args.use_embedding
+        or os.path.exists(
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "features",
+                args.llm,
+            ).replace("Storage2", config.WRITE_DIR)
+        )
     ):
         gpt = GPT(
             llm=args.llm, device=config.GPT_DEVICE, gpt=args.gpt, not_load_model=True

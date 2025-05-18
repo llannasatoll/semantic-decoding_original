@@ -76,7 +76,7 @@ WINDOW = 20
 # devices
 
 GPT_DEVICE = "cuda"
-EM_DEVICE = "cpu"
+EM_DEVICE = "cuda"
 SM_DEVICE = "cuda"
 
 gpt = "perceived"
